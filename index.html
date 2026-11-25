@@ -15,7 +15,7 @@
 <title>Орфограф</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Golos+Text:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,700;1,500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Golos+Text:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,700;1,500&family=Caveat:wght@600&display=swap">
 <style>
 :root{
   --bg:#EEF0FB; --paper:#FFFFFF; --sunk:#F4F5FC; --line:#DADDF0; --ink:#141733; --muted:#62668A;
@@ -72,11 +72,18 @@ h2{font:700 17px/1.2 var(--fd);margin:0}
 .route .muted{font-size:13px}
 .avg{font:800 15px var(--fd);background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:6px 10px;color:var(--co)}
 .map{position:relative;margin:0 -4px}
-.deco{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.deco span{position:absolute;font:700 60px/1 var(--fs);color:var(--line);opacity:.55}
+.deco{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.d-let{font-family:var(--fs);font-weight:700;fill:var(--line);opacity:.6;text-anchor:middle}
+.d-ink{fill:none;stroke:var(--co);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
+.d-inkf{fill:var(--co);opacity:.55}
+.d-red{fill:none;stroke:#E04B3F;stroke-width:2;opacity:.6}
+.d-inkt,.d-redt{font-family:"Caveat",cursive;font-weight:600;opacity:.7}
+.d-inkt{fill:var(--co)}.d-redt{fill:#E04B3F}
+.d-wave{fill:none;stroke:#8FCDEB;stroke-width:3;stroke-linecap:round;opacity:.8}
+.d-flake{fill:none;stroke:#9DBEE6;stroke-width:1.8;stroke-linecap:round}
 .map svg.path{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.path .pb{fill:none;stroke:var(--line);stroke-width:16;stroke-linecap:round}
-.path .pw{fill:none;stroke:var(--paper);stroke-width:4;stroke-linecap:round;stroke-dasharray:2 14;opacity:.9}
+.path .pb{fill:none;stroke:var(--pb,var(--line));stroke-width:var(--pbw,16px);stroke-linecap:round;stroke-dasharray:var(--pbd,none)}
+.path .pw{fill:none;stroke:var(--pw,var(--paper));stroke-width:4;stroke-linecap:round;stroke-dasharray:2 14;opacity:.9}
 .path .pd{fill:none;stroke-width:16;stroke-linecap:round;opacity:.85}
 .node{position:absolute;left:0;right:0;height:96px;display:flex;align-items:center;gap:12px;padding:0 2%}
 .node.rgt{flex-direction:row-reverse}
@@ -240,6 +247,36 @@ h2{font:700 17px/1.2 var(--fd);margin:0}
 .mid{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:26;width:64px;height:64px;border-radius:50%;background:var(--le);color:#141733;display:grid;place-items:center;font:800 15px var(--fd);border:4px solid var(--bg)}
 .splitx{position:fixed;z-index:26;right:12px;top:50%;transform:translateY(-50%);background:var(--paper);color:var(--ink);width:40px;height:40px;border-radius:50%;font-size:18px}
 
+/* оформления */
+:root[data-skin=notebook]{color-scheme:light;--bg:#FBFAF5;--paper:#FFFFFF;--sunk:#F3F1E8;--line:#D9DDE8;--ink:#1B2340;--muted:#5F6478;--co:#3B3FD1;--co-d:#2A2C9E;--co-soft:#E4E4FB;--cor:#E04B3F;--cor-soft:#FBE3E0;--mi:#1E8A55;--mi-soft:#DDF2E7;--pb:#B9BFD3;--pbw:3px;--pbd:9 8;--pw:transparent}
+:root[data-skin=notebook] .view{background:linear-gradient(90deg,transparent 30px,rgba(224,75,63,.35) 30px 32px,transparent 32px),repeating-linear-gradient(transparent 0 31px,#DCE5F2 31px 32px);background-attachment:local}
+:root[data-skin=space]{color-scheme:dark;--bg:#0B0D24;--paper:#171A3A;--sunk:#12142E;--line:#2C3160;--ink:#EEF0FF;--muted:#A3A8D6;--co:#7C5CFF;--co-d:#5638D9;--co-soft:#2A2160;--cor:#FF7A70;--cor-soft:#3E1D2C;--mi:#3FD58F;--mi-soft:#123528;--pb:rgba(255,255,255,.1);--pw:rgba(255,255,255,.55)}
+:root[data-skin=space] body{background:radial-gradient(ellipse at 20% 0%,#2A1E6E 0,transparent 55%),radial-gradient(ellipse at 100% 60%,#14335F 0,transparent 50%),#0B0D24}
+:root[data-skin=space] .view{background:transparent}
+:root[data-skin=forest]{color-scheme:light;--bg:#E6F1DC;--paper:#FFFFFF;--sunk:#F1F7EB;--line:#CADDBB;--ink:#1E2B1A;--muted:#5C6E55;--co:#2F8A4C;--co-d:#1F6635;--co-soft:#DCF0E1;--pb:#D8BE92;--pbw:22px;--pw:#EBDDBF}
+:root[data-skin=sea]{color-scheme:light;--bg:#DFF1FA;--paper:#FFFFFF;--sunk:#EDF7FC;--line:#BFE0EF;--ink:#0F2A3D;--muted:#4F6E80;--co:#0F7CC4;--co-d:#0A5A90;--co-soft:#D3EAF9;--pb:#F2DDB0;--pbw:20px;--pw:#fff}
+:root[data-skin=winter]{color-scheme:light;--bg:#EDF3FA;--paper:#FFFFFF;--sunk:#F4F8FC;--line:#D3DFEE;--ink:#17243A;--muted:#5B6B82;--co:#3D7BD9;--co-d:#2A5BA8;--co-soft:#DDE9FA;--pb:#FFFFFF;--pbw:20px;--pw:#C9DBF0}
+:root[data-skin=winter] .path .pb{filter:drop-shadow(0 2px 0 #D3DFEE)}
+.skins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.skin{border:1px solid var(--line);border-radius:16px;overflow:hidden;text-align:left;background:var(--paper)}
+.skin[aria-pressed="true"]{border:2px solid var(--co);box-shadow:0 3px 0 var(--co)}
+.skin .pv{display:block;height:68px;border-bottom:1px solid var(--line)}
+.skin .pv svg{width:100%;height:100%;display:block}
+.skin .nm2{display:block;padding:8px 10px;font-weight:700;font-size:14px}
+.skin .nm2 small{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+/* online и профиль игрока */
+.ol{font:600 11px var(--fb);display:inline-flex;align-items:center;gap:4px;color:var(--muted)}
+.ol::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--line)}
+.ol.on{color:var(--mi)}
+.ol.on::before{background:var(--mi);box-shadow:0 0 0 3px var(--mi-soft)}
+.r.me .ol,.r.me .ol.on{color:#141733}
+button.r{width:100%;text-align:left;font:inherit;color:inherit}
+.r:active{background:var(--sunk)}
+.uhead{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.ava.avbig{width:72px;height:72px;font-size:26px;outline:3px solid var(--co);outline-offset:2px}
+.unm{font:800 20px var(--fd)}
+.hcell{border-radius:10px;padding:8px 4px;text-align:center;font:600 12px/1.2 var(--fb);color:#fff}
+.hcell small{display:block;font-weight:500;opacity:.9}
 /* аватарка и статус */
 .stemo{font-size:.95em;margin-left:2px}
 .avbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -296,6 +333,7 @@ h2{font:700 17px/1.2 var(--fd);margin:0}
 <div id="shade" class="shade" hidden><div class="sheet" id="sheet"></div></div>
 <div id="toast" class="toast" hidden></div>
 <script src="data.js"></script>
+<script src="skins.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

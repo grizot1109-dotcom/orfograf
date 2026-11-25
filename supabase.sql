@@ -98,3 +98,27 @@ begin
 end $$;
 revoke all on function public.ru_submit_duel(text, uuid, text, text, int, int) from public;
 grant execute on function public.ru_submit_duel(text, uuid, text, text, int, int) to anon, authenticated;
+
+-- Профили: сводка статистики игрока для карточки «профиль друга»
+create table if not exists public.ru_profiles (
+  player_id uuid primary key references public.players(id) on delete cascade,
+  stats jsonb not null,
+  updated_at timestamptz not null default now(),
+  constraint ru_profiles_stats_size check (octet_length(stats::text) <= 8192)
+);
+alter table public.ru_profiles enable row level security;
+drop policy if exists "ru profiles are public" on public.ru_profiles;
+create policy "ru profiles are public" on public.ru_profiles for select using (true);
+revoke insert, update, delete on public.ru_profiles from anon, authenticated;
+grant select on public.ru_profiles to anon, authenticated;
+
+create or replace function public.ru_set_profile(p_id uuid, p_secret text, p_name text, p_stats jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  perform _auth_player(p_id, p_secret, p_name);
+  if p_stats is null or jsonb_typeof(p_stats) <> 'object' or octet_length(p_stats::text) > 8192 then raise exception 'bad stats'; end if;
+  insert into ru_profiles (player_id, stats) values (p_id, p_stats)
+  on conflict (player_id) do update set stats = excluded.stats, updated_at = now();
+end $$;
+revoke all on function public.ru_set_profile(uuid, text, text, jsonb) from public;
+grant execute on function public.ru_set_profile(uuid, text, text, jsonb) to anon, authenticated;

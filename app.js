@@ -184,14 +184,10 @@ function renderLearn() {
       </button>
       <button class="lab" data-topic="${i}"><b>${esc(t.name)}</b><span>${esc(t.ege)} · ${t.list.length} ${plural(t.list.length, "задание", "задания", "заданий")}</span><i class="mb"><s style="width:${Math.max(m * 100, m ? 4 : 0)}%"></s></i><em>${Math.round(m * 100)}% выучено</em></button></div>`;
   }).join("");
-  // буквы-водяные знаки на фоне
-  let seed = 11; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
-  const LET = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
-  let deco = ""; for (let k = 0; k < TOPICS.length * 2; k++) deco += `<span style="top:${(k / (TOPICS.length * 2)) * H + rnd() * 40}px;left:${k % 2 ? 4 + rnd() * 20 : 72 + rnd() * 22}%;font-size:${40 + rnd() * 60}px;transform:rotate(${-20 + rnd() * 40}deg)">${LET[Math.floor(rnd() * LET.length)]}</span>`;
   $("#view").innerHTML = headerHTML(true) + `
     <div class="goal">${ring(d.n / GOAL)}<div><b>Цель дня ${Math.min(d.n, GOAL)} / ${GOAL}</b><small>${left ? `Ещё ${left} ${plural(left, "задание", "задания", "заданий")} — и огонёк горит` : "Цель выполнена, огонёк горит!"}</small></div></div>
     <div class="route"><div><h1>Маршрут</h1><span class="muted">${TOPICS.length} тем · ${total} заданий · все открыты</span></div><span class="avg">${avg}%</span></div>
-    <div class="map" id="map" style="height:${H}px"><div class="deco" aria-hidden="true">${deco}</div><svg class="path" id="mapPath"></svg>${nodes}
+    <div class="map" id="map" style="height:${H}px"><svg class="deco" id="deco" aria-hidden="true"></svg><svg class="path" id="mapPath"></svg>${nodes}
       <div class="finish" style="top:${H - 44}px">🏁 Финиш — ЕГЭ</div></div>`;
   const map = $("#map"), W = map.clientWidth;
   const xs = i => (i % 2 ? .76 : .24) * W;
@@ -202,6 +198,9 @@ function renderLearn() {
     p += seg;
     if (mastery(TOPICS[i - 1]) >= .8) done += `<path d="M${a[0]},${a[1]}${seg}" class="pd" stroke="${look(TOPICS[i - 1])[0]}"/>`;
   }
+  const gaps = [TOP - 26, ...TOPICS.map((_, i) => i * STEP + TOP + 96 + 18)];
+  const deco = $("#deco"); deco.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  deco.innerHTML = `<defs><linearGradient id="cometG" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".9"/></linearGradient></defs>` + decorSVG(skinNow(), W, H, gaps);
   $("#mapPath").setAttribute("viewBox", `0 0 ${W} ${H}`);
   $("#mapPath").innerHTML = `<path d="${p}" class="pb"/><path d="${p}" class="pw"/>${done}`;
   map.onclick = e => { const b = e.target.closest("[data-topic]"); if (b) topicSheet(+b.dataset.topic); };
@@ -480,6 +479,8 @@ function syncScore() {
       await api("rpc/ru_submit_score", { method: "POST", body: JSON.stringify({ p_id: me.id, p_secret: me.secret, p_name: me.name, p_day: k,
         p_points: d ? d.pts : 0, p_correct: d ? d.ok : 0, p_attempts: d ? d.n : 0, p_streak: st, p_level: L, p_avatar: myAv() }) });
     }
+    lastSeen.set(me.id, Date.now());
+    await syncProfile().catch(e => console.warn("профиль:", e.message));
   }).catch(e => console.warn("рейтинг:", e.message));
   return syncing;
 }
@@ -502,6 +503,7 @@ async function loadBoard() {
       api(`ru_duels?select=code,creator_id,creator_name,created_at&created_at=gte.${daysAgo(3).toISOString()}&order=created_at.desc&limit=30`)
     ]);
     board.rows = rows || []; board.duels = duels || []; board.err = null;
+    for (const r of board.rows) { const t = Date.parse(r.updated_at) || 0; if (t > (lastSeen.get(r.player_id) || 0)) lastSeen.set(r.player_id, t); }
     await loadPhotos(board.rows);
   } catch (e) { board.err = e.message; }
   board.loading = false;
@@ -555,7 +557,7 @@ function renderFriends() {
     <div class="pseg" id="per"><button data-p="day" aria-pressed="${period === "day"}">День</button><button data-p="week" aria-pressed="${period === "week"}">Неделя</button><button data-p="month" aria-pressed="${period === "month"}">Месяц</button></div>
     ${board.err ? `<div class="card err">Рейтинг не загрузился: ${esc(board.err)}</div>` : ""}
     <div class="rows">${!board.rows && board.loading ? `<div class="empty">Загружаю…</div>` : r.map((p, i) => `
-      <div class="r ${p.id === me.id ? "me" : ""}"><span class="n">${i + 1}</span>${avaHTML(p.id, p.name, p.avatar)}<span class="nm">${esc(p.name)}${p.id === me.id ? " (ты)" : ""} ${statusOf(p.avatar)}<small>🔥 ${p.streak} · ур. ${p.level}</small></span><span class="sc">${fmt(p.pts)}</span></div>
+      <button class="r ${p.id === me.id ? "me" : ""}" data-u="${esc(p.id)}"><span class="n">${i + 1}</span>${avaHTML(p.id, p.name, p.avatar)}<span class="nm">${esc(p.name)}${p.id === me.id ? " (ты)" : ""} ${statusOf(p.avatar)}<small>🔥 ${p.streak} · ур. ${p.level} · ${olHTML(p.id)}</small></span><span class="sc">${fmt(p.pts)}</span></button>
       ${i === 2 && r.length > 3 && period === "week" ? `<div class="zone">▲ ТОП-3 НЕДЕЛИ — ПРИЗОВЫЕ МЕСТА</div>` : ""}`).join("")}
       ${board.rows && r.length < 2 ? `<div class="empty">Пока в рейтинге только ты. Позови друзей: ссылка на приложение — ${esc(location.origin + location.pathname)}</div>` : ""}</div>
     <div class="sec">Дуэли</div>
@@ -568,6 +570,7 @@ function renderFriends() {
   $("#mkDuel").onclick = createDuel;
   v.querySelectorAll("[data-duel]").forEach(b => b.onclick = () => joinDuel(b.dataset.duel));
   v.querySelectorAll("[data-res]").forEach(b => b.onclick = () => duelResultsSheet(b.dataset.res));
+  v.querySelectorAll("[data-u]").forEach(b => b.onclick = () => openUser(b.dataset.u));
 }
 async function setNick(raw, errEl) {
   const n = String(raw || "").trim().replace(/\s+/g, " ");
@@ -681,6 +684,8 @@ function renderProfile() {
     <div class="card"><h2>Статус</h2><p class="muted" style="margin:4px 0 0;font-size:14px">Стоит рядом с ником.</p>
       <div class="emojis">${AV_EMOJI.map(e => `<button data-e="${e}" aria-pressed="${e === me.status}" aria-label="${e}">${e}</button>`).join("")}</div>
       ${me.status ? `<button class="link" id="stReset">Убрать статус</button>` : ""}</div>
+    ${skinCardHTML()}
+    <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
     <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
@@ -690,6 +695,8 @@ function renderProfile() {
   const sr = $("#stReset"); if (sr) sr.onclick = () => setStatus("");
   const af = $("#avFile"); if (af) af.onchange = () => { if (af.files && af.files[0]) uploadPhoto(af.files[0]); };
   const ad = $("#avDel"); if (ad) ad.onclick = removePhoto;
+  document.querySelectorAll(".skin").forEach(b => b.onclick = () => { prefs.skin = b.dataset.k; savePrefs(); applySkin(prefs.skin); syncSoon(); render(); toast("Оформление «" + SKINS.find(k => k.id === prefs.skin).name + "»"); });
+  $("#myProf").onclick = () => openUser(me.id);
 }
 
 /* ---------- Статистика ---------- */
@@ -764,6 +771,83 @@ function renderStats() {
   });
 }
 
+/* ---------- Профиль другого игрока ---------- */
+const ONLINE_MS = 150000;
+const lastSeen = new Map();
+const isOnline = id => id === me.id || Date.now() - (lastSeen.get(id) || 0) < ONLINE_MS;
+const olHTML = id => isOnline(id) ? `<span class="ol on">online</span>` : `<span class="ol">offline</span>`;
+function myProfileStats() {
+  const all = Object.values(state.items), n = all.reduce((a, s) => a + s.n, 0), ok = all.reduce((a, s) => a + s.ok, 0);
+  const topics = {}; for (const t of TOPICS) topics[t.id] = Math.round(mastery(t) * 100);
+  return { v: 1, total: state.total, lvl: lvl().L, streak: streak(), ans: n, acc: n ? Math.round(ok / n * 100) : 0,
+    words: all.filter(s => s.b >= 2).length, blitz: state.blitzBest || 0, lessons: Object.values(state.lessons).reduce((a, b) => a + b, 0),
+    topics, ach: achievements().map(a => a[2] ? 1 : 0).join(""), skin: skinNow() };
+}
+async function syncProfile() {
+  const st = myProfileStats(), js = JSON.stringify(st);
+  if (js === syncProfile.last) return;
+  await api("rpc/ru_set_profile", { method: "POST", body: JSON.stringify({ p_id: me.id, p_secret: me.secret, p_name: me.name, p_stats: st }) });
+  syncProfile.last = js;
+}
+async function openUser(id) {
+  const row = (board.rows || []).find(r => r.player_id === id) || {};
+  const name = id === me.id ? me.name : row.name || "Игрок", av = id === me.id ? myAv() : row.avatar || "";
+  openSheet(`<div class="uprof"><div class="uhead">${avaHTML(id, name, av, "avbig")}<div><div class="unm">${esc(name)} ${statusOf(av)}</div>${olHTML(id)}</div></div><div id="ubody"><div class="empty">Загружаю профиль…</div></div></div>`);
+  try {
+    const from = dayKey(daysAgo(13));
+    const [pr, days] = await Promise.all([
+      id === me.id ? Promise.resolve([{ stats: myProfileStats() }]) : api(`ru_profiles?select=stats,updated_at&player_id=eq.${id}`),
+      api(`ru_scores?select=day,points,attempts,correct,streak,level&player_id=eq.${id}&day=gte.${from}&order=day.asc`)
+    ]);
+    const s = (pr && pr[0] && pr[0].stats) || null, D = new Map((days || []).map(d => [d.day, d]));
+    if (id === me.id) for (const [k, d] of Object.entries(state.days)) if (k >= from) D.set(k, { day: k, points: d.pts, attempts: d.n, correct: d.ok });
+    const last = (days || []).slice(-1)[0] || {};
+    const week = [...D.values()].filter(d => d.day >= dayKey(weekStart())).reduce((a, d) => a + d.points, 0);
+    // 14 дней
+    const list = []; for (let i = 13; i >= 0; i--) { const k = dayKey(daysAgo(i)); list.push(D.get(k) || { day: k, attempts: 0, correct: 0 }); }
+    const max = Math.max(GOAL, ...list.map(d => d.attempts)), H = 60, W = 22;
+    const bars = list.map((d, i) => { const h = d.attempts / max * H, ho = (d.correct || 0) / max * H, X = i * W + 3;
+      return `<rect x="${X}" y="${6 + H - h}" width="${W - 6}" height="${h}" rx="3" fill="var(--cor)"/><rect x="${X}" y="${6 + H - ho}" width="${W - 6}" height="${ho}" rx="3" fill="var(--mi)"/>${d.attempts ? "" : `<rect x="${X}" y="${H + 5}" width="${W - 6}" height="1.5" fill="var(--line)"/>`}<text x="${X + (W - 6) / 2}" y="${H + 20}" text-anchor="middle">${+d.day.slice(8)}</text>`; }).join("");
+    const achList = achievements();
+    const heat = m => m >= 80 ? "var(--mi)" : m >= 40 ? "var(--le-d)" : m > 0 ? "var(--cor)" : "var(--line)";
+    $("#ubody").innerHTML = `
+      <div class="muted" style="margin:-4px 0 10px">Уровень ${s ? s.lvl : last.level || 1} · 🔥 ${s ? s.streak : last.streak || 0} ${plural(s ? s.streak : last.streak || 0, "день", "дня", "дней")} подряд${s && s.skin ? ` · оформление «${esc((SKINS.find(k => k.id === s.skin) || {}).name || "Классика")}»` : ""}</div>
+      <div class="stiles">
+        <div class="tile"><b>${fmt(week)}</b><small>знаков за неделю</small></div>
+        <div class="tile"><b>${s ? fmt(s.total) : "—"}</b><small>знаков всего</small></div>
+        <div class="tile"><b>${s ? s.acc + "%" : "—"}</b><small>точность · ${s ? fmt(s.ans) : 0} ${plural(s ? s.ans : 0, "ответ", "ответа", "ответов")}</small></div>
+        <div class="tile"><b>${s ? s.blitz : "—"}</b><small>рекорд блица</small></div></div>
+      ${s ? `<div class="ach" style="margin:4px 0 12px">${achList.map((a, i) => `<i class="${s.ach && s.ach[i] === "1" ? "on" : ""}" title="${esc(a[1])}">${a[0]}</i>`).join("")}</div>` : ""}
+      <div class="ch"><h2>Активность</h2><span>14 дней</span></div>
+      <svg class="chart" viewBox="0 0 ${14 * W} ${H + 26}">${bars}</svg>
+      ${s ? `<div class="ch" style="margin-top:14px"><h2>Темы</h2><span>${s.words} ${plural(s.words, "слово выучено", "слова выучено", "слов выучено")}</span></div>
+      <div class="hgrid">${TOPICS.map(t => { const m = (s.topics || {})[t.id] || 0; return `<span class="hcell" style="background:${heat(m)};${m ? "" : "color:var(--muted)"}">${esc(t.name)}<small>${m}%</small></span>`; }).join("")}</div>`
+      : `<p class="muted" style="margin-top:12px">Подробная статистика появится, когда игрок откроет новую версию приложения.</p>`}
+      <div class="btns">${id !== me.id && me.name ? `<button class="btn le" id="uDuel">Вызвать на дуэль</button>` : ""}<button class="btn gh" id="uCl">Закрыть</button></div>`;
+    $("#uCl").onclick = closeSheet;
+    const du = $("#uDuel"); if (du) du.onclick = () => { closeSheet(); createDuel(); };
+    document.querySelectorAll("#ubody .ach i").forEach(i => i.onclick = () => toast(i.title + (i.classList.contains("on") ? " — получено" : " — ещё нет")));
+  } catch (e) { $("#ubody").innerHTML = `<div class="err">Не загрузилось: ${esc(e.message)}</div>`; }
+}
+
+/* ---------- Оформление ---------- */
+function skinNow() { return SKINS.some(k => k.id === prefs.skin) ? prefs.skin : "classic"; }
+function applySkin(id) {
+  const el = document.documentElement;
+  if (id === "classic") el.removeAttribute("data-skin"); else el.setAttribute("data-skin", id);
+  const bg = getComputedStyle(document.body).backgroundColor;
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute("content", bg));
+}
+function skinCardHTML() {
+  const cur = skinNow();
+  return `<div class="card"><h2>Оформление</h2><p class="muted" style="margin:4px 0 0;font-size:14px">Меняет цвета и рисунки на карте тем.</p>
+    <div class="skins">${SKINS.map(k => `<button class="skin" data-k="${k.id}" aria-pressed="${k.id === cur}">
+      <span class="pv" style="background:${k.sw[0]}"><svg viewBox="0 0 120 64" aria-hidden="true">${decorSVG(k.id, 120, 64, [14, 50]).replace(/font-size="[\d.]+"/g, 'font-size="22"')}
+        <path d="M24,40 C24,20 96,44 96,22" fill="none" stroke="${k.id === "space" ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.12)"}" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="24" cy="40" r="11" fill="${k.sw[1]}"/><circle cx="96" cy="22" r="11" fill="${k.sw[2]}" stroke="${k.sw[1]}" stroke-width="2"/></svg></span>
+      <span class="nm2">${k.name}<small>${k.note}</small></span></button>`).join("")}</div></div>`;
+}
+
 /* ---------- Клавиатура ---------- */
 document.addEventListener("keydown", e => {
   if ($("#ov").hidden || !$("#shade").hidden) return;
@@ -772,6 +856,7 @@ document.addEventListener("keydown", e => {
 });
 
 /* ---------- Старт ---------- */
+applySkin(skinNow());
 render();
 if (me.name) { syncScore(); if (tab === "friends") loadBoard(); if (/^photo:/.test(me.avatar || "")) loadPhotos([{ player_id: me.id, avatar: me.avatar }]).then(r => r && render()); }
 {
