@@ -15,7 +15,7 @@
 <title>Орфограф</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Golos+Text:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,700;1,500&family=Caveat:wght@600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Golos+Text:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,700;1,500&family=Caveat:wght@600&family=Old+Standard+TT:wght@700&family=PT+Mono&display=swap">
 <style>
 :root{
   --bg:#EEF0FB; --paper:#FFFFFF; --sunk:#F4F5FC; --line:#DADDF0; --ink:#141733; --muted:#62668A;
@@ -250,13 +250,31 @@ h2{font:700 17px/1.2 var(--fd);margin:0}
 /* оформления */
 :root[data-skin=notebook]{color-scheme:light;--bg:#FBFAF5;--paper:#FFFFFF;--sunk:#F3F1E8;--line:#D9DDE8;--ink:#1B2340;--muted:#5F6478;--co:#3B3FD1;--co-d:#2A2C9E;--co-soft:#E4E4FB;--cor:#E04B3F;--cor-soft:#FBE3E0;--mi:#1E8A55;--mi-soft:#DDF2E7;--pb:#B9BFD3;--pbw:3px;--pbd:9 8;--pw:transparent}
 :root[data-skin=notebook] .view{background:linear-gradient(90deg,transparent 30px,rgba(224,75,63,.35) 30px 32px,transparent 32px),repeating-linear-gradient(transparent 0 31px,#DCE5F2 31px 32px);background-attachment:local}
-:root[data-skin=space]{color-scheme:dark;--bg:#0B0D24;--paper:#171A3A;--sunk:#12142E;--line:#2C3160;--ink:#EEF0FF;--muted:#A3A8D6;--co:#7C5CFF;--co-d:#5638D9;--co-soft:#2A2160;--cor:#FF7A70;--cor-soft:#3E1D2C;--mi:#3FD58F;--mi-soft:#123528;--pb:rgba(255,255,255,.1);--pw:rgba(255,255,255,.55)}
-:root[data-skin=space] body{background:radial-gradient(ellipse at 20% 0%,#2A1E6E 0,transparent 55%),radial-gradient(ellipse at 100% 60%,#14335F 0,transparent 50%),#0B0D24}
-:root[data-skin=space] .view{background:transparent}
-:root[data-skin=forest]{color-scheme:light;--bg:#E6F1DC;--paper:#FFFFFF;--sunk:#F1F7EB;--line:#CADDBB;--ink:#1E2B1A;--muted:#5C6E55;--co:#2F8A4C;--co-d:#1F6635;--co-soft:#DCF0E1;--pb:#D8BE92;--pbw:22px;--pw:#EBDDBF}
-:root[data-skin=sea]{color-scheme:light;--bg:#DFF1FA;--paper:#FFFFFF;--sunk:#EDF7FC;--line:#BFE0EF;--ink:#0F2A3D;--muted:#4F6E80;--co:#0F7CC4;--co-d:#0A5A90;--co-soft:#D3EAF9;--pb:#F2DDB0;--pbw:20px;--pw:#fff}
-:root[data-skin=winter]{color-scheme:light;--bg:#EDF3FA;--paper:#FFFFFF;--sunk:#F4F8FC;--line:#D3DFEE;--ink:#17243A;--muted:#5B6B82;--co:#3D7BD9;--co-d:#2A5BA8;--co-soft:#DDE9FA;--pb:#FFFFFF;--pbw:20px;--pw:#C9DBF0}
-:root[data-skin=winter] .path .pb{filter:drop-shadow(0 2px 0 #D3DFEE)}
+:root[data-skin=news]{color-scheme:light;--bg:#ECE9E1;--paper:#F8F6F0;--sunk:#F1EEE6;--line:#CFCAC0;--ink:#141414;--muted:#5C5A55;--co:#1A1A1A;--co-d:#000;--co-soft:#E2DED4;--cor:#B3261E;--cor-soft:#F2DEDB;--mi:#2F6B3E;--mi-soft:#DCEADF;--le:#F2D23C;--le-d:#C9A80E;--pb:#1A1A1A;--pbw:2px;--pbd:7 6;--pw:transparent;--fd:"Old Standard TT",Georgia,serif}
+:root[data-skin=news] .node .c::before{filter:grayscale(1) contrast(1.3)}
+:root[data-skin=news] .lab,:root[data-skin=news] .card,:root[data-skin=news] .tile{border-radius:2px;border-color:#1A1A1A;box-shadow:3px 3px 0 #1A1A1A}
+:root[data-skin=news] .lab b{font-family:"Old Standard TT",Georgia,serif;font-size:16px}
+:root[data-skin=news] .goal{border-radius:2px;background:#1A1A1A}
+:root[data-skin=khokh]{color-scheme:dark;--bg:#140E0A;--paper:#211812;--sunk:#1A130E;--line:#3D2C20;--ink:#F6E7C8;--muted:#C9AE84;--co:#C8261E;--co-d:#8E1712;--co-soft:#3A1512;--cor:#FF6A5C;--cor-soft:#3A1512;--mi:#7FC46A;--mi-soft:#1F2E18;--le:#E8B53A;--le-d:#B8862B;--pb:#3A2716;--pbw:14px;--pw:#E8B53A}
+:root[data-skin=khokh] .node:nth-of-type(odd){--tc:#C8261E!important}
+:root[data-skin=khokh] .node:nth-of-type(even){--tc:#C9901E!important}
+:root[data-skin=khokh] .lab{border-color:#5A3F22;box-shadow:0 3px 0 #5A3F22}
+:root[data-skin=khokh] .node .c::before{box-shadow:0 7px 0 color-mix(in srgb,var(--tc) 50%,#000),0 0 0 3px #E8B53A,inset 0 -6px 0 rgba(0,0,0,.15)}
+:root[data-skin=gzhel]{color-scheme:light;--bg:#F6F8FD;--paper:#FFFFFF;--sunk:#EEF2FB;--line:#D3DDF2;--ink:#0E2A6B;--muted:#4F6290;--co:#1F4FBF;--co-d:#143A93;--co-soft:#DEE7FA;--cor:#C8323A;--cor-soft:#F8E0E2;--mi:#1F7A5A;--mi-soft:#DCF0E8;--pb:#D3DDF2;--pbw:12px;--pw:#1F4FBF}
+:root[data-skin=gzhel] .node{--tc:#1F4FBF!important}
+:root[data-skin=gzhel] .node:nth-of-type(3n){--tc:#3F6AD3!important}
+:root[data-skin=gzhel] .node .c::before{box-shadow:0 7px 0 #0E2A6B,inset 0 0 0 4px #fff,inset 0 0 0 6px #1F4FBF}
+:root[data-skin=telegraph]{color-scheme:light;--bg:#E7DCC4;--paper:#F6F0E1;--sunk:#EFE6D2;--line:#D2C3A1;--ink:#2B2118;--muted:#6E5F49;--co:#A8392A;--co-d:#7A2519;--co-soft:#F1DCD2;--cor:#A8392A;--cor-soft:#F1DCD2;--mi:#3F7A4B;--mi-soft:#DDEBDD;--pb:#2B2118;--pbw:3px;--pbd:16 7 3 7;--pw:transparent;--fd:"PT Mono",ui-monospace,monospace}
+:root[data-skin=telegraph] .lab b{font-family:"PT Mono",monospace;text-transform:uppercase;font-size:13.5px}
+:root[data-skin=telegraph] .lab,:root[data-skin=telegraph] .card{border-radius:6px}
+:root[data-skin=neon]{color-scheme:dark;--bg:#0E0B14;--paper:#1A1522;--sunk:#141019;--line:#2E2638;--ink:#F4EEFF;--muted:#A99BC0;--co:#FF3DA5;--co-d:#B81570;--co-soft:#3A1530;--cor:#FF5E7A;--cor-soft:#3A1520;--mi:#39F5A6;--mi-soft:#10301F;--le:#FFE45E;--le-d:#C9AE14;--pb:#2DE2E6;--pbw:4px;--pw:transparent}
+:root[data-skin=neon] .path .pb{filter:drop-shadow(0 0 4px #2DE2E6) drop-shadow(0 0 10px #2DE2E6)}
+:root[data-skin=neon] .node .c::before{box-shadow:0 0 0 2px var(--tc),0 0 18px var(--tc),0 0 36px color-mix(in srgb,var(--tc) 50%,transparent);background:#0E0B14}
+:root[data-skin=neon] .node .g{color:var(--tc);text-shadow:0 0 8px var(--tc)}
+:root[data-skin=neon] .lab{box-shadow:0 0 0 1px var(--tc),0 0 14px color-mix(in srgb,var(--tc) 40%,transparent);border-color:transparent}
+.d-news{font-family:"Old Standard TT",Georgia,serif;font-weight:700;fill:#1A1A1A}
+.d-mono{font-family:"PT Mono",ui-monospace,monospace}
+.d-neon{font-family:"Unbounded",sans-serif;font-weight:700;letter-spacing:.04em}
 .skins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
 .skin{border:1px solid var(--line);border-radius:16px;overflow:hidden;text-align:left;background:var(--paper)}
 .skin[aria-pressed="true"]{border:2px solid var(--co);box-shadow:0 3px 0 var(--co)}

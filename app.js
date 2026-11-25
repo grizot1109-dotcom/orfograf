@@ -200,7 +200,7 @@ function renderLearn() {
   }
   const gaps = [TOP - 26, ...TOPICS.map((_, i) => i * STEP + TOP + 96 + 18)];
   const deco = $("#deco"); deco.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  deco.innerHTML = `<defs><linearGradient id="cometG" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".9"/></linearGradient></defs>` + decorSVG(skinNow(), W, H, gaps);
+  deco.innerHTML = decorDefs() + decorSVG(skinNow(), W, H, gaps);
   $("#mapPath").setAttribute("viewBox", `0 0 ${W} ${H}`);
   $("#mapPath").innerHTML = `<path d="${p}" class="pb"/><path d="${p}" class="pw"/>${done}`;
   map.onclick = e => { const b = e.target.closest("[data-topic]"); if (b) topicSheet(+b.dataset.topic); };
@@ -842,8 +842,8 @@ function skinCardHTML() {
   const cur = skinNow();
   return `<div class="card"><h2>Оформление</h2><p class="muted" style="margin:4px 0 0;font-size:14px">Меняет цвета и рисунки на карте тем.</p>
     <div class="skins">${SKINS.map(k => `<button class="skin" data-k="${k.id}" aria-pressed="${k.id === cur}">
-      <span class="pv" style="background:${k.sw[0]}"><svg viewBox="0 0 120 64" aria-hidden="true">${decorSVG(k.id, 120, 64, [14, 50]).replace(/font-size="[\d.]+"/g, 'font-size="22"')}
-        <path d="M24,40 C24,20 96,44 96,22" fill="none" stroke="${k.id === "space" ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.12)"}" stroke-width="6" stroke-linecap="round"/>
+      <span class="pv" style="background:${k.sw[0]}"><svg viewBox="0 0 120 64" aria-hidden="true">${decorDefs()}${decorSVG(k.id, 120, 64, [14, 50]).replace(/font-size="[\d.]+"/g, 'font-size="22"')}
+        <path d="M24,40 C24,20 96,44 96,22" fill="none" stroke="${["khokh", "neon"].includes(k.id) ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.12)"}" stroke-width="6" stroke-linecap="round"/>
         <circle cx="24" cy="40" r="11" fill="${k.sw[1]}"/><circle cx="96" cy="22" r="11" fill="${k.sw[2]}" stroke="${k.sw[1]}" stroke-width="2"/></svg></span>
       <span class="nm2">${k.name}<small>${k.note}</small></span></button>`).join("")}</div></div>`;
 }

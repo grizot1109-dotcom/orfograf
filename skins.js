@@ -1,19 +1,21 @@
 /* Оформления «Орфографа»: цвета задаются в index.html через :root[data-skin=…],
-   а здесь — рисунки на карте тем. Рисунки — простые SVG, размер s ≈ высота фигуры в px. */
+   а здесь — рисунки на карте тем. Рисунки — простые SVG, s ≈ размер фигуры в px. */
 const SKINS = [
   { id: "classic", name: "Классика", note: "буквы алфавита", sw: ["#EEF0FB", "#2F45E0", "#FFD84D"] },
   { id: "notebook", name: "Тетрадь", note: "каракули на полях", sw: ["#FBFAF5", "#3B3FD1", "#E04B3F"] },
-  { id: "space", name: "Космос", note: "звёзды и планеты", sw: ["#0B0D24", "#7C5CFF", "#FFD84D"] },
-  { id: "forest", name: "Лес", note: "ёлки и грибы", sw: ["#E6F1DC", "#2F8A4C", "#C9A97A"] },
-  { id: "sea", name: "Море", note: "волны, рыбы, острова", sw: ["#DFF1FA", "#0F7CC4", "#F2C46D"] },
-  { id: "winter", name: "Зима", note: "снег и снеговики", sw: ["#EDF3FA", "#3D7BD9", "#FFFFFF"] }
+  { id: "news", name: "Газета", note: "растр, кроссворды, заголовки", sw: ["#ECE9E1", "#1A1A1A", "#B3261E"] },
+  { id: "khokh", name: "Хохлома", note: "ягоды и золотые завитки", sw: ["#140E0A", "#C8261E", "#E8B53A"] },
+  { id: "gzhel", name: "Гжель", note: "синие цветы на белом", sw: ["#F6F8FD", "#1F4FBF", "#8FA9E6"] },
+  { id: "telegraph", name: "Телеграф", note: "марки, штемпели, морзе", sw: ["#E7DCC4", "#A8392A", "#2B4C7E"] },
+  { id: "neon", name: "Неон", note: "светящиеся вывески", sw: ["#0E0B14", "#FF3DA5", "#2DE2E6"] }
 ];
 
+const pickOf = (arr, r) => arr[Math.floor(r() * arr.length)];
 const DRAW = {
   /* ---- Классика ---- */
   letter(x, y, s, r) {
     const L = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
-    return `<text x="${x}" y="${y + s / 3}" font-size="${s * 1.6}" transform="rotate(${-20 + r() * 40} ${x} ${y})" class="d-let">${L[Math.floor(r() * L.length)]}</text>`;
+    return `<text x="${x}" y="${y + s / 3}" font-size="${s * 1.6}" transform="rotate(${-20 + r() * 40} ${x} ${y})" class="d-let">${pickOf(L, r)}</text>`;
   },
   /* ---- Тетрадь ---- */
   star(x, y, s) {
@@ -38,126 +40,145 @@ const DRAW = {
   },
   word(x, y, s, r) {
     const W = ["5+", "Ура!", "жи-ши", "!", "?!", "ча-ща", "А+", "молодец", "5"];
-    const red = r() < .5;
-    return `<text x="${x}" y="${y + s * .25}" font-size="${s * .8}" text-anchor="middle" transform="rotate(${-14 + r() * 28} ${x} ${y})" class="${red ? "d-redt" : "d-inkt"}">${W[Math.floor(r() * W.length)]}</text>`;
+    return `<text x="${x}" y="${y + s * .25}" font-size="${s * .8}" text-anchor="middle" transform="rotate(${-14 + r() * 28} ${x} ${y})" class="${r() < .5 ? "d-redt" : "d-inkt"}">${pickOf(W, r)}</text>`;
   },
-  /* ---- Космос ---- */
-  dot(x, y, s, r) { return `<circle cx="${x}" cy="${y}" r="${(.6 + r() * 1.4).toFixed(1)}" fill="#fff" opacity="${(.3 + r() * .7).toFixed(2)}"/>`; },
-  sparkle(x, y, s) {
-    const a = s * .5, b = s * .1;
-    return `<path d="M${x},${y - a} Q${x + b},${y - b} ${x + a},${y} Q${x + b},${y + b} ${x},${y + a} Q${x - b},${y + b} ${x - a},${y} Q${x - b},${y - b} ${x},${y - a}Z" fill="#FFF3B0"/>`;
+  /* ---- Газета ---- */
+  halftone(x, y, s) {
+    let o = ""; const n = 7, st = s / n;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const dx = (i - n / 2 + .5) * st, dy = (j - n / 2 + .5) * st, d = Math.hypot(dx, dy) / (s * .5);
+      if (d < 1) o += `<circle cx="${(x + dx).toFixed(1)}" cy="${(y + dy).toFixed(1)}" r="${(st * .48 * (1 - d * .85)).toFixed(2)}" fill="#1A1A1A" opacity=".55"/>`;
+    }
+    return o;
   },
-  planet(x, y, s, r) {
-    const C = ["#FF8A5B", "#5ED3C7", "#F2C14E", "#B28DFF", "#FF6FA5"], c = C[Math.floor(r() * C.length)], R = s * .42, ring = r() < .6;
-    return `<g transform="rotate(${-25 + r() * 50} ${x} ${y})">${ring ? `<ellipse cx="${x}" cy="${y}" rx="${R * 1.7}" ry="${R * .45}" fill="none" stroke="${c}" stroke-width="3" opacity=".55"/>` : ""}
-      <circle cx="${x}" cy="${y}" r="${R}" fill="${c}"/><path d="M${x - R},${y} A${R},${R} 0 0 0 ${x + R},${y} Z" fill="rgba(0,0,0,.18)"/>
-      ${ring ? `<path d="M${x - R * 1.7},${y} A${R * 1.7},${R * .45} 0 0 0 ${x + R * 1.7},${y}" fill="none" stroke="${c}" stroke-width="3"/>` : `<circle cx="${x - R * .35}" cy="${y - R * .3}" r="${R * .18}" fill="rgba(0,0,0,.15)"/>`}</g>`;
+  headline(x, y, s, r) {
+    const H = ["СЕНСАЦИЯ", "ВНИМАНИЕ!", "ЖИ-ШИ ПИШИ С И", "СРОЧНО В НОМЕР", "ЭКСТРЕННЫЙ ВЫПУСК", "ГРАМОТНОСТЬ — СИЛА", "ЗАПЯТАЯ НАЙДЕНА"];
+    const t = pickOf(H, r), w = t.length * s * .34;
+    return `<g transform="rotate(${-6 + r() * 12} ${x} ${y})"><line x1="${x - w / 2}" x2="${x + w / 2}" y1="${y - s * .55}" y2="${y - s * .55}" stroke="#1A1A1A" stroke-width="2"/>
+      <text x="${x}" y="${y + s * .2}" font-size="${s * .62}" text-anchor="middle" class="d-news">${t}</text>
+      <line x1="${x - w / 2}" x2="${x + w / 2}" y1="${y + s * .45}" y2="${y + s * .45}" stroke="#1A1A1A" stroke-width=".8"/></g>`;
   },
-  moon(x, y, s) {
-    const R = s * .45;
-    return `<path d="M${x + R * .3},${y - R} A${R},${R} 0 1 0 ${x + R * .3},${y + R} A${R * .75},${R * .75} 0 1 1 ${x + R * .3},${y - R}Z" fill="#FFE59A"/>`;
+  crossword(x, y, s, r) {
+    const c = s / 4, L = "ОРФОГРАФ"; let o = `<g transform="rotate(${-10 + r() * 20} ${x} ${y})">`;
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) {
+      const X = x - 2 * c + i * c, Y = y - 1.5 * c + j * c, blk = (i + j * 2) % 5 === 3;
+      o += `<rect x="${X}" y="${Y}" width="${c}" height="${c}" fill="${blk ? "#1A1A1A" : "#FBF9F3"}" stroke="#1A1A1A" stroke-width=".9"/>`;
+      if (!blk && j === 1) o += `<text x="${X + c / 2}" y="${Y + c * .72}" font-size="${c * .62}" text-anchor="middle" class="d-news">${L[i]}</text>`;
+    }
+    return o + `</g>`;
   },
-  comet(x, y, s) {
-    return `<path d="M${x - s * 1.4},${y - s * .5} L${x},${y - 3} L${x},${y + 3} Z" fill="url(#cometG)"/><circle cx="${x}" cy="${y}" r="${s * .14}" fill="#fff"/>`;
+  column(x, y, s, r) {
+    let o = ""; const w = s * 1.1;
+    for (let i = 0; i < 5; i++) o += `<rect x="${x - w / 2}" y="${y - s * .4 + i * s * .2}" width="${i === 4 ? w * .55 : w * (.85 + r() * .15)}" height="${s * .07}" fill="#1A1A1A" opacity=".28"/>`;
+    return o;
   },
-  rocket(x, y, s) {
-    const k = s / 40;
-    return `<g transform="translate(${x},${y}) rotate(35) scale(${k})"><path d="M0,-20 C9,-10 9,8 6,14 L-6,14 C-9,8 -9,-10 0,-20Z" fill="#EEF0FF"/><circle cx="0" cy="-4" r="4" fill="#5ED3C7"/><path d="M-6,6 L-12,16 L-6,14Z M6,6 L12,16 L6,14Z" fill="#FF6FA5"/><path d="M-4,14 L0,24 L4,14Z" fill="#FFB547"/></g>`;
+  /* ---- Хохлома ---- */
+  berries(x, y, s, r) {
+    const n = 3 + Math.floor(r() * 3), R = s * .16; let o = `<path d="M${x},${y - s * .1} q${s * .3},-${s * .4} ${s * .55},-${s * .35}" stroke="#E8B53A" stroke-width="2" fill="none"/>`;
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + r(), d = i ? R * 1.7 : 0, cx = x + d * Math.cos(a), cy = y + d * Math.sin(a);
+      o += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R}" fill="#C8261E"/><circle cx="${(cx - R * .3).toFixed(1)}" cy="${(cy - R * .35).toFixed(1)}" r="${R * .3}" fill="#FFD27A"/><circle cx="${(cx + R * .3).toFixed(1)}" cy="${(cy + R * .3).toFixed(1)}" r="${R * .15}" fill="#14080A" opacity=".5"/>`; }
+    return o;
   },
-  /* ---- Лес ---- */
-  pine(x, y, s, r) {
-    const g = r() < .5 ? "#2E7D46" : "#3C9656", d = "#1F5E34", w = s * .45;
-    return `<rect x="${x - s * .05}" y="${y + s * .3}" width="${s * .1}" height="${s * .22}" fill="#7A5230"/>
-      <path d="M${x},${y - s * .55} L${x + w * .6},${y - s * .1} L${x - w * .6},${y - s * .1}Z" fill="${g}"/>
-      <path d="M${x},${y - s * .35} L${x + w * .8},${y + s * .12} L${x - w * .8},${y + s * .12}Z" fill="${g}"/>
-      <path d="M${x},${y - s * .12} L${x + w},${y + s * .34} L${x - w},${y + s * .34}Z" fill="${g}"/>
-      <path d="M${x},${y - s * .12} L${x + w},${y + s * .34} L${x},${y + s * .34}Z" fill="${d}" opacity=".35"/>`;
+  leaf(x, y, s, r) {
+    const a = -40 + r() * 80, k = s / 40;
+    return `<g transform="translate(${x},${y}) rotate(${a}) scale(${k})"><path d="M0,18 C-14,4 -10,-14 0,-20 C10,-14 14,4 0,18Z" fill="#E8B53A"/><path d="M0,16 L0,-16" stroke="#9A6A14" stroke-width="1.4"/>
+      <path d="M0,4 L-6,-4 M0,-4 L5,-10 M0,10 L6,3" stroke="#9A6A14" stroke-width="1"/><path d="M0,18 q-4,10 6,14 q8,2 6,-6" stroke="#E8B53A" stroke-width="2" fill="none"/></g>`;
   },
-  bush(x, y, s) {
-    const R = s * .22;
-    return `<circle cx="${x - R}" cy="${y + R * .4}" r="${R}" fill="#4FA862"/><circle cx="${x + R}" cy="${y + R * .4}" r="${R}" fill="#43995A"/><circle cx="${x}" cy="${y - R * .2}" r="${R * 1.2}" fill="#5BB86E"/><circle cx="${x + R * .4}" cy="${y - R * .5}" r="2" fill="#E0567F"/>`;
+  curl(x, y, s, r) {
+    const d = r() < .5 ? 1 : -1, k = s / 40;
+    return `<g transform="translate(${x},${y}) scale(${d * k},${k})"><path d="M-20,10 C-10,-12 10,-14 14,-2 C18,10 2,14 0,4 C-1,-2 6,-4 7,0" stroke="#E8B53A" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path d="M-20,10 q-2,-8 -10,-10 M-12,0 q-4,-8 -12,-6" stroke="#E8B53A" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>`;
   },
-  mushroom(x, y, s) {
-    const k = s / 30;
-    return `<rect x="${x - 3 * k}" y="${y}" width="${6 * k}" height="${10 * k}" rx="${2 * k}" fill="#F3E6CF"/><path d="M${x - 12 * k},${y + 1} A${12 * k},${10 * k} 0 0 1 ${x + 12 * k},${y + 1}Z" fill="#E2483C"/>
-      <circle cx="${x - 5 * k}" cy="${y - 4 * k}" r="${1.8 * k}" fill="#fff"/><circle cx="${x + 4 * k}" cy="${y - 6 * k}" r="${1.5 * k}" fill="#fff"/><circle cx="${x + 1 * k}" cy="${y - 2 * k}" r="${1.2 * k}" fill="#fff"/>`;
+  /* ---- Гжель ---- */
+  rose(x, y, s, r) {
+    const R = s * .45; let o = `<circle cx="${x}" cy="${y}" r="${R}" fill="#1F4FBF" opacity=".12"/>`;
+    for (let i = 0; i < 4; i++) { const rr = R * (1 - i * .22), a0 = r() * 3;
+      o += `<path d="M${(x + rr * Math.cos(a0)).toFixed(1)},${(y + rr * Math.sin(a0)).toFixed(1)} A${rr},${rr} 0 1 1 ${(x + rr * Math.cos(a0 + 4.2)).toFixed(1)},${(y + rr * Math.sin(a0 + 4.2)).toFixed(1)}" stroke="#1F4FBF" stroke-width="${2.6 - i * .4}" fill="none" stroke-linecap="round"/>`; }
+    return o + `<circle cx="${x}" cy="${y}" r="${R * .12}" fill="#1F4FBF"/>`;
   },
-  grass(x, y, s) {
-    return `<path d="M${x - 8},${y + 6} Q${x - 6},${y - 4} ${x - 10},${y - 10} M${x},${y + 6} Q${x},${y - 6} ${x + 2},${y - 14} M${x + 7},${y + 6} Q${x + 6},${y - 3} ${x + 11},${y - 8}" stroke="#5BA866" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+  gleaf(x, y, s, r) {
+    const a = r() * 360, k = s / 30;
+    return `<g transform="translate(${x},${y}) rotate(${a}) scale(${k})"><path d="M0,0 C6,-8 16,-8 22,0 C16,8 6,8 0,0Z" fill="#1F4FBF"/><path d="M2,0 L20,0" stroke="#F6F8FD" stroke-width="1"/>
+      <path d="M0,0 C-6,-6 -14,-6 -18,0 C-14,6 -6,6 0,0Z" fill="#5C82D9"/></g>`;
   },
-  flower(x, y, s, r) {
-    const c = ["#FFD84D", "#FF8FB1", "#B9A2FF", "#fff"][Math.floor(r() * 4)];
-    let p = ""; for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5; p += `<circle cx="${(x + 5 * Math.cos(a)).toFixed(1)}" cy="${(y + 5 * Math.sin(a)).toFixed(1)}" r="4" fill="${c}"/>`; }
-    return `<path d="M${x},${y + 4} L${x},${y + 16}" stroke="#4E9A5C" stroke-width="2"/>${p}<circle cx="${x}" cy="${y}" r="3" fill="#E8902C"/>`;
+  gdots(x, y, s) {
+    let o = ""; for (let i = 0; i < 3; i++) o += `<circle cx="${x + (i - 1) * s * .3}" cy="${y + (i === 1 ? -s * .2 : 0)}" r="${s * .1}" fill="#1F4FBF"/>`;
+    return o + `<path d="M${x - s * .5},${y + s * .3} q${s * .5},${s * .3} ${s},0" stroke="#5C82D9" stroke-width="1.6" fill="none"/>`;
   },
-  /* ---- Море ---- */
-  wave(x, y, s) {
-    let p = `M${x - s},${y}`; for (let i = 0; i < 4; i++) p += ` q${s / 4},-${s * .18} ${s / 2},0`;
-    return `<path d="${p}" class="d-wave"/>`;
+  /* ---- Телеграф ---- */
+  stamp(x, y, s, r) {
+    const w = s * .8, h = s, c = pickOf(["#A8392A", "#2B4C7E", "#3F7A4B", "#C98A2B"], r), a = -12 + r() * 24;
+    return `<g transform="rotate(${a} ${x} ${y})"><rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" fill="#FBF6EA" stroke="#B9A985" stroke-width="2" stroke-dasharray="2 3"/>
+      <rect x="${x - w / 2 + 4}" y="${y - h / 2 + 4}" width="${w - 8}" height="${h - 14}" fill="${c}" opacity=".85"/>
+      <text x="${x}" y="${y + 2}" font-size="${s * .38}" text-anchor="middle" fill="#FBF6EA" class="d-mono">${pickOf(["Ё", "Ъ", "Ж", "Я", "Щ"], r)}</text>
+      <text x="${x}" y="${y + h / 2 - 3}" font-size="${s * .14}" text-anchor="middle" fill="#6E5F49" class="d-mono">${pickOf(["5 коп", "10 коп", "1 руб"], r)}</text></g>`;
   },
-  fish(x, y, s, r) {
-    const c = ["#FF8A5B", "#F2C14E", "#FF6FA5", "#5ED3C7"][Math.floor(r() * 4)], d = r() < .5 ? 1 : -1, k = s / 30;
-    return `<g transform="translate(${x},${y}) scale(${d * k},${k})"><path d="M-14,0 Q0,-11 12,0 Q0,11 -14,0Z" fill="${c}"/><path d="M-12,0 L-22,-8 L-20,0 L-22,8Z" fill="${c}"/><circle cx="6" cy="-2" r="1.8" fill="#0F2A3D"/></g>`;
+  postmark(x, y, s, r) {
+    const R = s * .42; let w = "";
+    for (let i = 0; i < 3; i++) w += `<path d="M${x + R * .9},${y - 6 + i * 6} q6,-4 12,0 t12,0 t12,0" stroke="#2B4C7E" stroke-width="1.4" fill="none" opacity=".7"/>`;
+    return `<g transform="rotate(${-20 + r() * 40} ${x} ${y})" opacity=".75"><circle cx="${x}" cy="${y}" r="${R}" fill="none" stroke="#2B4C7E" stroke-width="2"/><circle cx="${x}" cy="${y}" r="${R * .72}" fill="none" stroke="#2B4C7E" stroke-width="1"/>
+      <text x="${x}" y="${y + 3}" font-size="${s * .2}" text-anchor="middle" fill="#2B4C7E" class="d-mono">${pickOf(["МОСКВА", "ПОЧТА", "25·11", "ТЧК"], r)}</text>${w}</g>`;
   },
-  island(x, y, s) {
-    const k = s / 50;
-    return `<g transform="translate(${x},${y}) scale(${k})"><ellipse cx="0" cy="14" rx="30" ry="9" fill="#F2C46D"/><path d="M-2,12 Q2,-6 8,-22" stroke="#8A5A2B" stroke-width="4" fill="none"/>
-      <path d="M8,-22 Q-6,-30 -18,-20 Q-4,-24 8,-22Z M8,-22 Q22,-32 30,-18 Q18,-24 8,-22Z M8,-22 Q0,-14 -6,-6 Q2,-16 8,-22Z M8,-22 Q20,-14 22,-4 Q14,-16 8,-22Z" fill="#2F9E5B"/></g>`;
+  tape(x, y, s, r) {
+    const T = pickOf(["ПРИЕЗЖАЮ ТЧК", "ПИШУ БЕЗ ОШИБОК ТЧК", "ЖДИ ЗПТ ЛЮБЛЮ ТЧК", "СРОЧНО ТЧК", "ЖИ ШИ ПИШИ С И ТЧК"], r), w = T.length * s * .2 + 14;
+    return `<g transform="rotate(${-8 + r() * 16} ${x} ${y})"><rect x="${x - w / 2}" y="${y - s * .2}" width="${w}" height="${s * .4}" fill="#FBF6EA" stroke="#D2C3A1"/>
+      <text x="${x}" y="${y + s * .1}" font-size="${s * .26}" text-anchor="middle" fill="#2B2118" class="d-mono">${T}</text></g>`;
   },
-  gull(x, y, s) { return `<path d="M${x - s * .4},${y} Q${x - s * .2},${y - s * .25} ${x},${y} Q${x + s * .2},${y - s * .25} ${x + s * .4},${y}" stroke="#3E6C88" stroke-width="2" fill="none" stroke-linecap="round"/>`; },
-  boat(x, y, s) {
-    const k = s / 40;
-    return `<g transform="translate(${x},${y}) scale(${k})"><path d="M-18,4 L18,4 L12,14 L-12,14Z" fill="#C8502D"/><path d="M0,4 L0,-22" stroke="#6B4A2B" stroke-width="2.5"/><path d="M2,-20 L16,0 L2,0Z" fill="#fff"/><path d="M-2,-16 L-12,0 L-2,0Z" fill="#F2F2F2"/></g>`;
+  stampword(x, y, s, r) {
+    const T = pickOf(["СРОЧНО", "МОЛНИЯ", "ВРУЧИТЬ", "ОТЛИЧНО"], r), w = T.length * s * .32 + 12;
+    return `<g transform="rotate(${-15 + r() * 30} ${x} ${y})" opacity=".7"><rect x="${x - w / 2}" y="${y - s * .3}" width="${w}" height="${s * .6}" rx="4" fill="none" stroke="#A8392A" stroke-width="2.4"/>
+      <text x="${x}" y="${y + s * .14}" font-size="${s * .4}" text-anchor="middle" fill="#A8392A" class="d-mono" font-weight="700">${T}</text></g>`;
   },
-  /* ---- Зима ---- */
-  flake(x, y, s, r) {
-    const R = s * .45; let p = "";
-    for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3, ex = x + R * Math.cos(a), ey = y + R * Math.sin(a); p += `M${x},${y} L${ex.toFixed(1)},${ey.toFixed(1)} `;
-      const mx = x + R * .6 * Math.cos(a), my = y + R * .6 * Math.sin(a);
-      p += `M${mx.toFixed(1)},${my.toFixed(1)} L${(mx + R * .25 * Math.cos(a + .8)).toFixed(1)},${(my + R * .25 * Math.sin(a + .8)).toFixed(1)} M${mx.toFixed(1)},${my.toFixed(1)} L${(mx + R * .25 * Math.cos(a - .8)).toFixed(1)},${(my + R * .25 * Math.sin(a - .8)).toFixed(1)} `; }
-    return `<path d="${p}" class="d-flake" transform="rotate(${r() * 60} ${x} ${y})"/>`;
+  /* ---- Неон ---- */
+  nword(x, y, s, r) {
+    const T = pickOf(["ОТКРЫТО", "ЖИ·ШИ", "24/7", "ГРАМОТНО", "ЧА·ЩА", "ЁЁЁ", "ВЕРНО!"], r), c = pickOf(["#FF3DA5", "#2DE2E6", "#FFE45E", "#7CFF6B", "#B98CFF"], r);
+    return `<text x="${x}" y="${y + s * .2}" font-size="${s * .6}" text-anchor="middle" transform="rotate(${-8 + r() * 16} ${x} ${y})" fill="none" stroke="${c}" stroke-width="1.6" filter="url(#glow)" class="d-neon">${T}</text>`;
   },
-  snowfir(x, y, s) {
-    const w = s * .45;
-    return `<rect x="${x - s * .05}" y="${y + s * .3}" width="${s * .1}" height="${s * .2}" fill="#7A5230"/>
-      <path d="M${x},${y - s * .55} L${x + w * .7},${y} L${x - w * .7},${y}Z" fill="#2F7A5A"/><path d="M${x},${y - s * .25} L${x + w},${y + s * .32} L${x - w},${y + s * .32}Z" fill="#2F7A5A"/>
-      <path d="M${x},${y - s * .55} L${x + w * .3},${y - s * .3} Q${x},${y - s * .22} ${x - w * .3},${y - s * .3}Z" fill="#fff"/>
-      <path d="M${x - w},${y + s * .32} Q${x},${y + s * .2} ${x + w},${y + s * .32}Z M${x - w * .7},${y} Q${x},${y - s * .1} ${x + w * .7},${y}Z" fill="#fff"/>`;
+  nheart(x, y, s, r) {
+    const k = s / 30, c = pickOf(["#FF3DA5", "#FF5E5E"], r);
+    return `<path d="M${x},${y + 10 * k} C${x - 16 * k},${y - 2 * k} ${x - 8 * k},${y - 14 * k} ${x},${y - 5 * k} C${x + 8 * k},${y - 14 * k} ${x + 16 * k},${y - 2 * k} ${x},${y + 10 * k}Z" fill="none" stroke="${c}" stroke-width="2.4" filter="url(#glow)"/>`;
   },
-  snowman(x, y, s) {
-    const k = s / 40;
-    return `<g transform="translate(${x},${y}) scale(${k})"><circle cx="0" cy="10" r="11" fill="#fff" stroke="#C9D8EA"/><circle cx="0" cy="-7" r="8" fill="#fff" stroke="#C9D8EA"/>
-      <circle cx="-3" cy="-9" r="1.3" fill="#17243A"/><circle cx="3" cy="-9" r="1.3" fill="#17243A"/><path d="M0,-6 L7,-5 L0,-4Z" fill="#F28C28"/>
-      <path d="M-8,-14 L8,-14 L6,-22 L-6,-22Z" fill="#2F45E0"/><path d="M-7,-1 L7,-1" stroke="#E0567F" stroke-width="3"/></g>`;
+  narrow(x, y, s, r) {
+    const d = r() < .5 ? 1 : -1, c = pickOf(["#2DE2E6", "#FFE45E", "#7CFF6B"], r), w = s * .7;
+    return `<path d="M${x - w * d},${y} L${x + w * d},${y} M${x + (w - 9) * d},${y - 8} L${x + w * d},${y} L${x + (w - 9) * d},${y + 8}" stroke="${c}" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>`;
   },
-  drift(x, y, s) { return `<ellipse cx="${x}" cy="${y + s * .2}" rx="${s * .9}" ry="${s * .25}" fill="#fff"/>`; }
+  nstar(x, y, s, r) {
+    let p = ""; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, R = i % 2 ? s * .2 : s * .48; p += (i ? "L" : "M") + (x + R * Math.cos(a)).toFixed(1) + "," + (y + R * Math.sin(a)).toFixed(1); }
+    return `<path d="${p}Z" fill="none" stroke="${pickOf(["#FFE45E", "#B98CFF", "#2DE2E6"], r)}" stroke-width="2.2" stroke-linejoin="round" filter="url(#glow)"/>`;
+  },
+  brick(x, y, s, r) {
+    const w = 34, h = 14;
+    return `<g opacity=".5"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#2A2233" stroke-width="1.2"/><rect x="${x + w / 2}" y="${y + h}" width="${w}" height="${h}" fill="none" stroke="#2A2233" stroke-width="1.2"/></g>`;
+  }
 };
 
-/* Какие рисунки и сколько — для каждого оформления */
+/* Какие рисунки и сколько — для каждого оформления (freeN — штук на 10 000 px²) */
 const DECOR = {
-  classic: { gap: ["letter"], free: ["letter"], freeN: 0 },
+  classic: { gap: ["letter"], free: [], freeN: 0 },
   notebook: { gap: ["star", "spiral", "heart", "smile", "arrow", "word", "word"], free: [], freeN: 0 },
-  space: { gap: ["planet", "sparkle", "moon", "comet", "sparkle", "rocket"], free: ["dot"], freeN: 4 },
-  forest: { gap: ["pine", "pine", "bush", "mushroom", "grass", "flower", "pine"], free: ["grass"], freeN: .12 },
-  sea: { gap: ["wave", "fish", "island", "gull", "boat", "wave", "fish"], free: ["wave"], freeN: .18 },
-  winter: { gap: ["snowfir", "snowman", "flake", "drift", "snowfir", "flake"], free: ["flake"], freeN: .45 }
+  news: { gap: ["halftone", "headline", "crossword", "column", "halftone", "headline"], free: [], freeN: 0 },
+  khokh: { gap: ["berries", "leaf", "curl", "berries", "leaf", "curl"], free: ["curl"], freeN: .12 },
+  gzhel: { gap: ["rose", "gleaf", "gdots", "rose", "gleaf"], free: ["gleaf"], freeN: .15 },
+  telegraph: { gap: ["stamp", "postmark", "tape", "stampword", "stamp"], free: [], freeN: 0 },
+  neon: { gap: ["nword", "nheart", "narrow", "nstar", "nword"], free: ["brick"], freeN: .6 }
 };
-const SIZE = { letter: 44, star: 28, spiral: 26, heart: 26, smile: 28, arrow: 34, word: 26, sparkle: 18, planet: 40, moon: 30, comet: 22, rocket: 40, pine: 46, bush: 36, mushroom: 30, grass: 20, flower: 18, wave: 34, fish: 28, island: 56, gull: 22, boat: 40, flake: 18, snowfir: 46, snowman: 42, drift: 40, dot: 2 };
+const SIZE = { letter: 44, star: 28, spiral: 26, heart: 26, smile: 28, arrow: 34, word: 26, halftone: 40, headline: 22, crossword: 40, column: 36, berries: 34, leaf: 34, curl: 34, rose: 40, gleaf: 30, gdots: 26, stamp: 40, postmark: 40, tape: 26, stampword: 26, nword: 30, nheart: 28, narrow: 34, nstar: 26, brick: 1 };
 
+function decorDefs() {
+  return `<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+}
 function decorSVG(skin, W, H, gaps) {
   const D = DECOR[skin] || DECOR.classic;
   let seed = 7 + skin.length * 13; const r = () => (seed = seed * 16807 % 2147483647) / 2147483647;
   const draw = (kind, x, y, s) => DRAW[kind](Math.round(x), Math.round(y), s, r);
   let out = "";
-  // свободные мелкие рисунки по всему полю (звёзды, снежинки)
   const nFree = Math.round(W * H / 10000 * D.freeN);
-  for (let i = 0; i < nFree; i++) { const k = D.free[Math.floor(r() * D.free.length)]; out += draw(k, r() * W, r() * H, SIZE[k] * (.6 + r() * .6)); }
-  // крупные рисунки в просветах между темами и по краям
+  for (let i = 0; i < nFree; i++) { const k = pickOf(D.free, r); out += draw(k, r() * W, r() * H, SIZE[k] * (.6 + r() * .6)); }
   gaps.forEach((y, gi) => {
     const slots = skin === "classic" ? [gi % 2 ? .1 : .9] : [.06 + r() * .14, .4 + r() * .2, .8 + r() * .14];
     for (const fx of slots) {
       if (skin !== "classic" && r() < .25) continue;
-      const k = D.gap[Math.floor(r() * D.gap.length)];
+      const k = pickOf(D.gap, r);
       out += draw(k, fx * W, y + (r() - .5) * 10, SIZE[k] * (.8 + r() * .4));
     }
   });
