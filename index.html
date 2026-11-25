@@ -15,7 +15,7 @@
 <title>Орфограф</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Golos+Text:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,700;1,500&family=Caveat:wght@600&family=Old+Standard+TT:wght@700&family=PT+Mono&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Golos+Text:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,700;1,500&family=Caveat:wght@600&family=Old+Standard+TT:wght@700&family=PT+Mono&family=Ruslan+Display&display=swap">
 <style>
 :root{
   --bg:#EEF0FB; --paper:#FFFFFF; --sunk:#F4F5FC; --line:#DADDF0; --ink:#141733; --muted:#62668A;
@@ -267,6 +267,27 @@ h2{font:700 17px/1.2 var(--fd);margin:0}
 :root[data-skin=neon] .node .c::before{box-shadow:0 0 0 2px var(--tc),0 0 18px var(--tc),0 0 36px color-mix(in srgb,var(--tc) 50%,transparent);background:#0E0B14}
 :root[data-skin=neon] .node .g{color:var(--tc);text-shadow:0 0 8px var(--tc)}
 :root[data-skin=neon] .lab{box-shadow:0 0 0 1px var(--tc),0 0 14px color-mix(in srgb,var(--tc) 40%,transparent);border-color:transparent}
+/* Метро */
+:root[data-skin=metro]{color-scheme:light;--bg:#F4F5F7;--paper:#FFFFFF;--sunk:#EEF0F3;--line:#D9DCE1;--ink:#1C1C1C;--muted:#5E6470;--co:#D6312B;--co-d:#9E1F1A;--co-soft:#FBE3E1;--pb:#D6312B;--pbw:10px;--pw:transparent}
+:root[data-skin=metro] .node .c::before{background:#fff;box-shadow:inset 0 0 0 9px var(--tc),0 3px 0 rgba(0,0,0,.12)}
+:root[data-skin=metro] .node .g{color:var(--tc)}
+:root[data-skin=metro] .lab{border-radius:6px;border-left:6px solid var(--tc);box-shadow:none}
+:root[data-skin=metro] .rg .tr{stroke:#D9DCE1}
+.d-metro{font-family:"Golos Text",sans-serif;font-weight:600;fill:#1C1C1C}
+/* Летопись */
+:root[data-skin=chronicle]{color-scheme:light;--bg:#EFE3C8;--paper:#F8F0DC;--sunk:#F2E8D0;--line:#D6C29A;--ink:#3A2414;--muted:#7A5E40;--co:#8E1B12;--co-d:#5E110B;--co-soft:#F0D8CC;--cor:#8E1B12;--cor-soft:#F0D8CC;--mi:#3F7A4B;--mi-soft:#DDE8D6;--le:#D9A93A;--le-d:#B8862B;--pb:#8E1B12;--pbw:3px;--pw:transparent;--fd:"Ruslan Display",Georgia,serif}
+:root[data-skin=chronicle] .view{background:radial-gradient(ellipse at 50% 0%,rgba(255,250,235,.7),transparent 60%),radial-gradient(ellipse at 0% 100%,rgba(140,100,50,.18),transparent 50%)}
+:root[data-skin=chronicle] .node .c::before{box-shadow:0 6px 0 color-mix(in srgb,var(--tc) 50%,#000),0 0 0 3px #B8862B}
+:root[data-skin=chronicle] .lab{border-color:#C9A96E;box-shadow:0 3px 0 #C9A96E}
+:root[data-skin=chronicle] .lab b{font-family:"Ruslan Display",Georgia,serif;font-weight:400;font-size:16px;letter-spacing:.01em}
+.d-old{font-family:"Ruslan Display","Lora",serif}
+/* Комикс */
+:root[data-skin=comics]{color-scheme:light;--bg:#FFF3C4;--paper:#FFFFFF;--sunk:#FFF8DE;--line:#111111;--ink:#111111;--muted:#4A4A4A;--co:#1E6BFF;--co-d:#111;--co-soft:#DCE7FF;--cor:#FF3B30;--cor-soft:#FFE0DD;--mi:#16A34A;--mi-soft:#DCF5E3;--le:#FFD400;--le-d:#111;--pb:#111;--pbw:9px;--pw:#fff}
+:root[data-skin=comics] .view{background-image:radial-gradient(rgba(255,120,0,.22) 1.6px,transparent 1.8px);background-size:12px 12px;background-attachment:local}
+:root[data-skin=comics] .lab,:root[data-skin=comics] .card,:root[data-skin=comics] .tile,:root[data-skin=comics] .chip,:root[data-skin=comics] .goal{border:2.5px solid #111;box-shadow:4px 4px 0 #111}
+:root[data-skin=comics] .node .c::before{box-shadow:4px 5px 0 #111,inset 0 0 0 3px #111}
+:root[data-skin=comics] .lab b{font-family:"Unbounded",sans-serif;font-weight:800;font-size:13px;text-transform:uppercase}
+.d-comic{font-family:"Unbounded",sans-serif;font-weight:800}
 .d-news{font-family:"Old Standard TT",Georgia,serif;font-weight:700;fill:#1A1A1A}
 .d-mono{font-family:"PT Mono",ui-monospace,monospace}
 .d-neon{font-family:"Unbounded",sans-serif;font-weight:700;letter-spacing:.04em}

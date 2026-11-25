@@ -6,7 +6,10 @@ const SKINS = [
   { id: "news", name: "Газета", note: "растр, кроссворды, заголовки", sw: ["#ECE9E1", "#1A1A1A", "#B3261E"] },
   { id: "gzhel", name: "Гжель", note: "синие цветы на белом", sw: ["#F6F8FD", "#1F4FBF", "#8FA9E6"] },
   { id: "telegraph", name: "Телеграф", note: "марки, штемпели, морзе", sw: ["#E7DCC4", "#A8392A", "#2B4C7E"] },
-  { id: "neon", name: "Неон", note: "светящиеся вывески", sw: ["#0E0B14", "#FF3DA5", "#2DE2E6"] }
+  { id: "neon", name: "Неон", note: "светящиеся вывески", sw: ["#0E0B14", "#FF3DA5", "#2DE2E6"] },
+  { id: "metro", name: "Метро", note: "схема линий и станций", sw: ["#F4F5F7", "#D6312B", "#0078BE"] },
+  { id: "chronicle", name: "Летопись", note: "буквицы и старые буквы", sw: ["#EFE3C8", "#8E1B12", "#B8862B"] },
+  { id: "comics", name: "Комикс", note: "облачка «БАМ!» и растр", sw: ["#FFF3C4", "#1E6BFF", "#FF3B30"] }
 ];
 
 const pickOf = (arr, r) => arr[Math.floor(r() * arr.length)];
@@ -134,6 +137,76 @@ const DRAW = {
   }
 };
 
+/* ---- Метро ---- */
+Object.assign(DRAW, {
+  mline(x, y, s, r) {
+    const c = pickOf(["#0078BE", "#4CB848", "#F07E24", "#8E479B", "#FFCD1C", "#00A0D6", "#A1A2A3"], r), w = s * 1.6, d = r() < .5 ? 1 : -1;
+    const x1 = x - w, x2 = x + w, y1 = y - s * .35 * d, y2 = y + s * .35 * d;
+    return `<path d="M${x1},${y1} L${x - s * .4},${y1} L${x + s * .4},${y2} L${x2},${y2}" stroke="${c}" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${x1 + 8}" cy="${y1}" r="4.5" fill="#fff" stroke="${c}" stroke-width="2.5"/><circle cx="${x2 - 8}" cy="${y2}" r="4.5" fill="#fff" stroke="${c}" stroke-width="2.5"/>`;
+  },
+  mlogo(x, y, s) {
+    const R = s * .5;
+    return `<circle cx="${x}" cy="${y}" r="${R}" fill="#D6312B"/><path d="M${x - R * .55},${y + R * .4} L${x - R * .3},${y - R * .45} L${x},${y + R * .1} L${x + R * .3},${y - R * .45} L${x + R * .55},${y + R * .4}" stroke="#fff" stroke-width="${R * .22}" fill="none" stroke-linejoin="round"/>`;
+  },
+  mstation(x, y, s, r) {
+    const T = pickOf(["Ударная", "Безударная", "Корневая", "Приставочная", "Суффиксальная", "Пересадка на Н/НН", "Запятая-Сортировочная", "Словарная"], r);
+    return `<circle cx="${x}" cy="${y}" r="6" fill="#fff" stroke="#1C1C1C" stroke-width="2.5"/><text x="${x + 11}" y="${y + 4}" font-size="${s * .42}" class="d-metro">${T}</text>`;
+  },
+  mxfer(x, y, s) {
+    return `<rect x="${x - 14}" y="${y - 8}" width="28" height="16" rx="8" fill="#fff" stroke="#1C1C1C" stroke-width="2"/><circle cx="${x - 6}" cy="${y}" r="4" fill="#4CB848"/><circle cx="${x + 6}" cy="${y}" r="4" fill="#0078BE"/>`;
+  },
+  /* ---- Летопись ---- */
+  dropcap(x, y, s, r) {
+    const L = pickOf(["Ѣ", "Ѳ", "Ж", "Ѧ", "Б", "Ꙋ", "Р"], r), w = s;
+    return `<g transform="rotate(${-6 + r() * 12} ${x} ${y})"><rect x="${x - w / 2}" y="${y - w / 2}" width="${w}" height="${w}" fill="#F6ECD3" stroke="#B8862B" stroke-width="2"/>
+      <rect x="${x - w / 2 + 4}" y="${y - w / 2 + 4}" width="${w - 8}" height="${w - 8}" fill="none" stroke="#8E1B12" stroke-width="1"/>
+      <path d="M${x - w / 2 + 6},${y + w / 2 - 6} q${w * .2},-${w * .35} ${w * .45},-${w * .1}" stroke="#3F7A4B" stroke-width="1.6" fill="none"/>
+      <text x="${x}" y="${y + w * .28}" font-size="${w * .72}" text-anchor="middle" class="d-old" fill="#8E1B12">${L}</text></g>`;
+  },
+  oldletter(x, y, s, r) {
+    return `<text x="${x}" y="${y + s * .3}" font-size="${s * 1.2}" text-anchor="middle" class="d-old" fill="#5A3A1E" opacity=".22" transform="rotate(${-15 + r() * 30} ${x} ${y})">${pickOf(["Ѣ", "Ѳ", "Ѵ", "І", "Ѧ", "Ѯ", "Ѱ", "Ѡ", "Ъ"], r)}</text>`;
+  },
+  blot(x, y, s, r) {
+    let p = ""; const n = 10;
+    for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2, R = s * (.28 + r() * .18); p += (i ? "L" : "M") + (x + R * Math.cos(a)).toFixed(1) + "," + (y + R * Math.sin(a)).toFixed(1); }
+    return `<path d="${p}Z" fill="#3A2414" opacity=".75"/><circle cx="${x + s * .5}" cy="${y + s * .2}" r="${s * .06}" fill="#3A2414" opacity=".75"/><circle cx="${x - s * .4}" cy="${y - s * .35}" r="${s * .04}" fill="#3A2414" opacity=".75"/>`;
+  },
+  quill(x, y, s, r) {
+    const k = s / 50;
+    return `<g transform="translate(${x},${y}) rotate(${-50 + r() * 20}) scale(${k})"><path d="M0,26 C-12,6 -10,-16 4,-28 C8,-12 6,8 0,26Z" fill="#F6ECD3" stroke="#7A5E40" stroke-width="1.4"/><path d="M0,26 C1,6 3,-10 4,-28" stroke="#7A5E40" stroke-width="1.2" fill="none"/>
+      <path d="M-4,10 L-9,6 M-5,0 L-10,-5 M-3,-10 L-8,-15" stroke="#7A5E40" stroke-width=".9"/><path d="M0,26 L-1,34" stroke="#3A2414" stroke-width="2"/></g>`;
+  },
+  vine(x, y, s, r) {
+    const d = r() < .5 ? 1 : -1, k = s / 40;
+    return `<g transform="translate(${x},${y}) scale(${d * k},${k})"><path d="M-24,6 C-12,-10 8,10 22,-6" stroke="#8E1B12" stroke-width="2" fill="none"/><path d="M-10,-1 q-4,-10 4,-12 q2,8 -4,12Z M8,2 q4,10 12,6 q-4,-8 -12,-6Z" fill="#3F7A4B"/><circle cx="22" cy="-6" r="3" fill="#B8862B"/></g>`;
+  },
+  /* ---- Комикс ---- */
+  burst(x, y, s, r) {
+    const T = pickOf(["БАМ!", "ВАУ!", "ХЛОП!", "ЖИ-ШИ!", "БУМ!", "ОГО!", "ДЗЫНЬ!"], r), c = pickOf(["#FFD400", "#FF3B30", "#1E6BFF", "#FF8A00"], r);
+    let p = ""; const n = 14, R1 = s * .75, R2 = s * .5;
+    for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * Math.PI * 2, R = i % 2 ? R2 : R1 * (.85 + r() * .25); p += (i ? "L" : "M") + (x + R * 1.25 * Math.cos(a)).toFixed(1) + "," + (y + R * Math.sin(a)).toFixed(1); }
+    const tc = c === "#FFD400" || c === "#FF8A00" ? "#111" : "#fff";
+    return `<g transform="rotate(${-12 + r() * 24} ${x} ${y})"><path d="${p}Z" fill="${c}" stroke="#111" stroke-width="2.5" stroke-linejoin="round"/>
+      <text x="${x}" y="${y + s * .17}" font-size="${s * .42}" text-anchor="middle" fill="${tc}" stroke="#111" stroke-width="${tc === "#fff" ? 1 : 0}" class="d-comic">${T}</text></g>`;
+  },
+  bubble(x, y, s, r) {
+    const T = pickOf(["Пиши с И!", "Где запятая?", "Ну ты даёшь!", "Ударение!", "Верно!"], r), w = T.length * s * .2 + 18, h = s * .7, d = r() < .5 ? 1 : -1;
+    return `<g><rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${h / 2}" fill="#fff" stroke="#111" stroke-width="2.5"/>
+      <path d="M${x + d * w * .15},${y + h / 2 - 1} l${d * 8},12 l${d * 6},-12" fill="#fff" stroke="#111" stroke-width="2.5" stroke-linejoin="round"/><rect x="${x + d * w * .15 - (d < 0 ? 14 : 0) + 1}" y="${y + h / 2 - 3}" width="13" height="4" fill="#fff"/>
+      <text x="${x}" y="${y + s * .12}" font-size="${s * .32}" text-anchor="middle" fill="#111" class="d-comic">${T}</text></g>`;
+  },
+  dots(x, y, s, r) {
+    const c = pickOf(["#FF3B30", "#1E6BFF", "#FFD400"], r); let o = ""; const n = 6, st = s / n;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if ((i + j) % 2 === 0) o += `<circle cx="${(x - s / 2 + i * st).toFixed(1)}" cy="${(y - s / 2 + j * st).toFixed(1)}" r="${(st * .32 * (1 - Math.hypot(i - n / 2, j - n / 2) / n)).toFixed(2)}" fill="${c}"/>`;
+    return o;
+  },
+  zap(x, y, s, r) {
+    const k = s / 40;
+    return `<g transform="translate(${x},${y}) rotate(${-20 + r() * 40}) scale(${k})"><path d="M4,-22 L-10,4 L0,4 L-6,22 L12,-6 L2,-6 L8,-22Z" fill="#FFD400" stroke="#111" stroke-width="2.5" stroke-linejoin="round"/></g>`;
+  }
+});
+
 /* Какие рисунки и сколько — для каждого оформления (freeN — штук на 10 000 px²) */
 const DECOR = {
   classic: { gap: ["letter"], free: [], freeN: 0 },
@@ -141,9 +214,12 @@ const DECOR = {
   news: { gap: ["halftone", "headline", "crossword", "column", "halftone", "headline"], free: [], freeN: 0 },
   gzhel: { gap: ["rose", "gleaf", "gdots", "rose", "gleaf"], free: ["gleaf"], freeN: .15 },
   telegraph: { gap: ["stamp", "postmark", "tape", "stampword", "stamp"], free: [], freeN: 0 },
-  neon: { gap: ["nword", "nheart", "narrow", "nstar", "nword"], free: ["brick"], freeN: .6 }
+  neon: { gap: ["nword", "nheart", "narrow", "nstar", "nword"], free: ["brick"], freeN: .6 },
+  metro: { gap: ["mline", "mstation", "mline", "mlogo", "mxfer", "mstation"], free: [], freeN: 0 },
+  chronicle: { gap: ["dropcap", "oldletter", "blot", "quill", "vine", "oldletter"], free: ["oldletter"], freeN: .1 },
+  comics: { gap: ["burst", "bubble", "dots", "zap", "burst"], free: [], freeN: 0 }
 };
-const SIZE = { letter: 44, star: 28, spiral: 26, heart: 26, smile: 28, arrow: 34, word: 26, halftone: 40, headline: 22, crossword: 40, column: 36, rose: 40, gleaf: 30, gdots: 26, stamp: 40, postmark: 40, tape: 26, stampword: 26, nword: 30, nheart: 28, narrow: 34, nstar: 26, brick: 1 };
+const SIZE = { letter: 44, star: 28, spiral: 26, heart: 26, smile: 28, arrow: 34, word: 26, halftone: 40, headline: 22, crossword: 40, column: 36, rose: 40, gleaf: 30, gdots: 26, stamp: 40, postmark: 40, tape: 26, stampword: 26, nword: 30, nheart: 28, narrow: 34, nstar: 26, brick: 1, mline: 30, mlogo: 28, mstation: 26, mxfer: 20, dropcap: 40, oldletter: 34, blot: 30, quill: 50, vine: 40, burst: 44, bubble: 40, dots: 36, zap: 36 };
 
 function decorDefs() {
   return `<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
