@@ -78,7 +78,14 @@ const correctText = it => it.kind === "choice" ? it.pre + it.opts[0] + it.post
   : it.kind === "stress" ? it.word.map((c, i) => i === it.idx ? c.toUpperCase() : c).join("")
   : it.words.map((w, i) => w + (it.commas.has(i) ? "," : "")).join(" ");
 
-/* ---------- Очки, уровень, огонёк ---------- */
+/* ---------- Очки, уровень, огонёк ----------
+   За верный ответ — очки по сложности темы; +3 за карточку, пришедшую на повторение вовремя;
+   комбо от 5 подряд — ×1,5. Бонус за урок: 10/10 — +20, 8–9 — +10. Блиц: +2 за верный, +10 за точность 90%+. */
+const TOPIC_PTS = { stress: 5, dict: 5, zsyi: 5, prepri: 6, yo: 6, roots: 7, paro: 7, nn: 8, ne: 8, hyph: 8, commas: 12 };
+const REVIEW_BONUS = 3, BLITZ_PTS = 2;
+const basePts = it => TOPIC_PTS[it.topic.id] || 6;
+function answerPts(it, combo, wasDue) { const raw = basePts(it) + (wasDue ? REVIEW_BONUS : 0); return combo >= 5 ? Math.round(raw * 1.5) : raw; }
+function addBonus(pts) { const k = dayKey(), d = state.days[k] || (state.days[k] = { n: 0, ok: 0, pts: 0 }); d.pts += pts; state.total += pts; }
 const today = () => state.days[dayKey()] || { n: 0, ok: 0, pts: 0 };
 function addDay(ok, pts) {
   const k = dayKey(), d = state.days[k] || (state.days[k] = { n: 0, ok: 0, pts: 0 });
@@ -91,11 +98,12 @@ function streak() {
 }
 function lvl(total = state.total) { let L = 1, need = 100; while (total >= need) { total -= need; L++; need = 100 + 50 * (L - 1); } return { L, cur: total, need }; }
 function record(it, ok, combo) {
+  const wasDue = isDue(it);
   const s = state.items[it.key] || (state.items[it.key] = { b: 0, due: 0, n: 0, ok: 0, bad: 0 });
   s.n++;
   if (ok) { s.ok++; s.b = Math.min(s.b + 1, INTERVALS.length - 1); s.due = Date.now() + INTERVALS[s.b]; }
   else { s.bad++; s.b = 0; s.due = Date.now() + INTERVALS[0]; }
-  const pts = ok ? (combo >= 5 ? 9 : 6) : 0;
+  const pts = ok ? answerPts(it, combo, wasDue) : 0;
   if (ok && /[ёЁ]/.test(it.kind === "stress" ? it.text : correctText(it))) { state.cnt = state.cnt || {}; state.cnt.yo = (state.cnt.yo || 0) + 1; }
   (state.log || (state.log = [])).push({ k: it.key, ok, t: Date.now() }); if (state.log.length > 400) state.log.splice(0, state.log.length - 400);
   addDay(ok, pts); save();
@@ -184,7 +192,7 @@ function renderLearn() {
         ${done ? `<span class="ok">✓</span>` : due ? `<span class="due">${due}</span>` : ""}
         ${i === cur ? `<span class="go">${state.lessons[t.id] ? "Продолжить" : "Начать"}</span>` : ""}
       </button>
-      <button class="lab" data-topic="${i}"><b>${esc(t.name)}</b><span>${esc(t.ege)} · ${t.list.length} ${plural(t.list.length, "задание", "задания", "заданий")}</span><i class="mb"><s style="width:${Math.max(m * 100, m ? 4 : 0)}%"></s></i><em>${Math.round(m * 100)}% выучено</em></button></div>`;
+      <button class="lab" data-topic="${i}"><b>${esc(t.name)}</b><span>${esc(t.ege)} · ${t.list.length} ${plural(t.list.length, "задание", "задания", "заданий")} · <b class="tp">★${basePts(t.list[0])}</b></span><i class="mb"><s style="width:${Math.max(m * 100, m ? 4 : 0)}%"></s></i><em>${Math.round(m * 100)}% выучено</em></button></div>`;
   }).join("");
   $("#view").innerHTML = headerHTML(true) + `
     <div class="goal">${ring(d.n / GOAL)}<div><b>Цель дня ${Math.min(d.n, GOAL)} / ${GOAL}</b><small>${left ? `Ещё ${left} ${plural(left, "задание", "задания", "заданий")} — и огонёк горит` : "Цель выполнена, огонёк горит!"}</small></div></div>
@@ -212,6 +220,7 @@ function topicSheet(i) {
   const seen = t.list.filter(it => itemState(it).n > 0).length;
   openSheet(`<div class="tsh"><span class="tg" style="background:${col}">${esc(g)}</span><div><h2>${esc(t.name)}</h2><div class="muted">${esc(t.ege)} · ${t.list.length} ${plural(t.list.length, "задание", "задания", "заданий")}</div></div></div>
     <div class="bar"><s style="width:${Math.round(m * 100)}%;background:${col}"></s></div>
+    <div class="ptsinfo">★ ${basePts(t.list[0])} зн. за верный ответ · +${REVIEW_BONUS} за повторение вовремя</div>
     <div class="muted" style="font-size:13px">Выучено ${Math.round(m * 100)}% · видел ${seen} из ${t.list.length}${due ? ` · ${due} ждут повторения` : ""}${state.best[t.id] ? ` · лучший урок ${state.best[t.id]}/${LESSON}` : ""}</div>
     <div class="btns"><button class="btn" id="goLesson" style="background:${col};box-shadow:0 4px 0 color-mix(in srgb,${col} 60%,#000)">${state.lessons[t.id] ? "Продолжить" : "Начать урок"}</button><button class="btn gh" id="goRule">Правило</button></div>`, s => {
     s.querySelector("#goLesson").addEventListener("click", () => { closeSheet(); startLesson(t); });
@@ -277,6 +286,7 @@ function answer(ok, btn) {
   if (L.ans !== null) return;
   const it = L.items[L.i];
   L.ans = ok; L.combo = ok ? L.combo + 1 : 0;
+  const wasDue = isDue(it);
   const pts = record(it, ok, L.combo); L.pts += pts; L.res.push(ok);
   const box = $("#ovIn");
   // подсветка выбранного и правильного
@@ -292,7 +302,7 @@ function answer(ok, btn) {
   const ansHTML = it.kind === "choice" ? `${esc(it.pre)}<b>${esc(it.opts[0])}</b>${esc(it.post)}` : esc(correctText(it));
   const last = L.i === L.items.length - 1;
   $("#after").innerHTML = `<div class="sheetA ${ok ? "" : "bad"}">
-    <div class="t">${ok ? "✓ Верно!" : "✕ Почти!"}<span>${ok ? `+${pts} зн.${L.combo >= 5 ? " · комбо ×1,5" : ""}` : "+0 зн."}</span></div>
+    <div class="t">${ok ? "✓ Верно!" : "✕ Почти!"}<span>${ok ? `+${pts} зн.${wasDue ? " · повтор" : ""}${L.combo >= 5 ? " · ×1,5" : ""}` : "+0 зн."}</span></div>
     ${ok && !it.note ? "" : `<div class="ans">${ansHTML}</div>`}
     <div class="rr">${it.note ? esc(it.note) : ok ? "Так держать." : "Карточка вернётся через 10 минут."}${!ok && it.note ? " Карточка вернётся через 10 минут." : ""}<br><button id="rl2">Правило темы</button></div>
     <button class="btn" id="next">${last ? "Итоги" : ok ? "Дальше" : "Понятно"}</button></div>`;
@@ -304,6 +314,8 @@ function next() { if (L.i < L.items.length - 1) { L.i++; drawQ(); } else finishL
 function finishLesson() {
   const ok = L.res.filter(Boolean).length, n = L.res.length;
   if (L.topic) { state.lessons[L.topic.id] = (state.lessons[L.topic.id] || 0) + 1; state.best[L.topic.id] = Math.max(state.best[L.topic.id] || 0, ok); }
+  L.bonus = n >= LESSON ? (ok === n ? 20 : ok >= 8 ? 10 : 0) : 0;
+  if (L.bonus) { addBonus(L.bonus); L.pts += L.bonus; }
   if (L.topic && n >= LESSON) {
     const perfect = ok === n, h = new Date().getHours(); state.cnt = state.cnt || {};
     state.perfectRun = perfect ? (state.perfectRun || 0) + 1 : 0; state.maxPerfectRun = Math.max(state.maxPerfectRun || 0, state.perfectRun);
@@ -322,6 +334,7 @@ function finishLesson() {
     <div class="score">${ok}/${n}</div>
     <h2>${ok === n ? "Идеально!" : ok >= 7 ? "Отличный урок!" : "Хорошая тренировка"}</h2>
     <div class="tiles"><div class="tile"><b>+${L.pts}</b><small>знаков</small></div><div class="tile"><b>${Math.min(today().n, GOAL)}/${GOAL}</b><small>цель дня</small></div><div class="tile"><b>${st}</b><small>огонёк</small></div></div>
+    ${L.bonus ? `<div class="chip g" style="margin-bottom:6px">★ Бонус за урок: +${L.bonus} зн.</div>` : ""}
     ${msgs.map(m => `<div class="chip" style="margin-bottom:6px">${esc(m)}</div>`).join("")}
     ${wrong.length ? `<div class="sec" style="align-self:flex-start">Ошибки — вернутся на повторение</div><div class="mist">${wrong.map(it => `<div>${esc(correctText(it))}</div>`).join("")}</div>` : ""}
     <div class="btns" style="width:100%;max-width:420px"><button class="btn" id="done">Готово</button>${L.topic ? `<button class="btn gh" id="again">Ещё урок</button>` : ""}</div></div>`;
@@ -392,7 +405,7 @@ function blitzAns(saysOk) {
   if (!B || B.busy) return;
   const st = B.seq[B.i], ok = saysOk === st.ok;
   B.n++; if (ok) B.ok++; else B.wrong.push(st.it);
-  addDay(ok, ok ? 3 : 0); save();
+  addDay(ok, ok ? BLITZ_PTS : 0); save();
   B.busy = true;
   $("#bcard").classList.add(ok ? "fo" : "fx");
   setTimeout(() => { if (!B) return; B.busy = false; B.i++; if (B.i >= B.seq.length || Date.now() >= B.end) return finishBlitz(); drawBlitz(); }, ok ? 220 : 650);
@@ -405,9 +418,11 @@ async function finishBlitz() {
   state.flags = state.flags || {};
   if (ok >= 40 && wrong.length <= 2) state.flags.karl = true;
   if (ok >= 35 && wrong.length === 0) state.flags.izhica = true;
+  const bbonus = n >= 10 && ok / n >= .9 ? 10 : 0; if (bbonus) addBonus(bbonus);
   save(); syncSoon(); setTimeout(() => checkMedals(), 300);
   $("#ovIn").innerHTML = `<div class="fin"><div class="muted">${duel ? "Дуэль " + esc(duel.code) : "Блиц 60 секунд"}</div><div class="score">${ok}</div>
     <h2>${ok} ${plural(ok, "верный ответ", "верных ответа", "верных ответов")} из ${n}</h2>
+    <div class="chip g">+${ok * BLITZ_PTS + bbonus} зн.${bbonus ? " · бонус за точность +10" : ""}</div>
     ${!duel && best && ok ? `<div class="chip">Новый рекорд!</div>` : ""}
     <div id="duelRes" style="width:100%"></div>
     ${wrong.length ? `<div class="sec" style="align-self:flex-start">Как правильно</div><div class="mist">${[...new Set(wrong)].map(it => `<div>${esc(correctText(it))}</div>`).join("")}</div>` : ""}

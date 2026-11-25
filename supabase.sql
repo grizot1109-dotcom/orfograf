@@ -31,7 +31,7 @@ begin
   perform _auth_player(p_id, p_secret, p_name);
   if p_day < current_date - 2 or p_day > current_date + 1 then raise exception 'bad day'; end if;
   if p_attempts < 0 or p_correct < 0 or p_points < 0 or p_streak < 0 or p_level < 1 or p_level > 1000
-     or p_correct > p_attempts or p_attempts > 3000 or p_points > p_attempts * 15 then raise exception 'bad score'; end if;
+     or p_correct > p_attempts or p_attempts > 3000 or p_points > p_attempts * 30 then raise exception 'bad score'; end if;
   p_avatar := left(coalesce(p_avatar, ''), 64);
   insert into ru_scores (player_id, day, name, points, correct, attempts, streak, level, avatar, updated_at)
   values (p_id, p_day, btrim(p_name), p_points, p_correct, p_attempts, p_streak, p_level, p_avatar, now())
