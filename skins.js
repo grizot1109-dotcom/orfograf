@@ -4,7 +4,6 @@ const SKINS = [
   { id: "classic", name: "Классика", note: "буквы алфавита", sw: ["#EEF0FB", "#2F45E0", "#FFD84D"] },
   { id: "notebook", name: "Тетрадь", note: "каракули на полях", sw: ["#FBFAF5", "#3B3FD1", "#E04B3F"] },
   { id: "news", name: "Газета", note: "растр, кроссворды, заголовки", sw: ["#ECE9E1", "#1A1A1A", "#B3261E"] },
-  { id: "khokh", name: "Хохлома", note: "ягоды и золотые завитки", sw: ["#140E0A", "#C8261E", "#E8B53A"] },
   { id: "gzhel", name: "Гжель", note: "синие цветы на белом", sw: ["#F6F8FD", "#1F4FBF", "#8FA9E6"] },
   { id: "telegraph", name: "Телеграф", note: "марки, штемпели, морзе", sw: ["#E7DCC4", "#A8392A", "#2B4C7E"] },
   { id: "neon", name: "Неон", note: "светящиеся вывески", sw: ["#0E0B14", "#FF3DA5", "#2DE2E6"] }
@@ -71,23 +70,6 @@ const DRAW = {
     let o = ""; const w = s * 1.1;
     for (let i = 0; i < 5; i++) o += `<rect x="${x - w / 2}" y="${y - s * .4 + i * s * .2}" width="${i === 4 ? w * .55 : w * (.85 + r() * .15)}" height="${s * .07}" fill="#1A1A1A" opacity=".28"/>`;
     return o;
-  },
-  /* ---- Хохлома ---- */
-  berries(x, y, s, r) {
-    const n = 3 + Math.floor(r() * 3), R = s * .16; let o = `<path d="M${x},${y - s * .1} q${s * .3},-${s * .4} ${s * .55},-${s * .35}" stroke="#E8B53A" stroke-width="2" fill="none"/>`;
-    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + r(), d = i ? R * 1.7 : 0, cx = x + d * Math.cos(a), cy = y + d * Math.sin(a);
-      o += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R}" fill="#C8261E"/><circle cx="${(cx - R * .3).toFixed(1)}" cy="${(cy - R * .35).toFixed(1)}" r="${R * .3}" fill="#FFD27A"/><circle cx="${(cx + R * .3).toFixed(1)}" cy="${(cy + R * .3).toFixed(1)}" r="${R * .15}" fill="#14080A" opacity=".5"/>`; }
-    return o;
-  },
-  leaf(x, y, s, r) {
-    const a = -40 + r() * 80, k = s / 40;
-    return `<g transform="translate(${x},${y}) rotate(${a}) scale(${k})"><path d="M0,18 C-14,4 -10,-14 0,-20 C10,-14 14,4 0,18Z" fill="#E8B53A"/><path d="M0,16 L0,-16" stroke="#9A6A14" stroke-width="1.4"/>
-      <path d="M0,4 L-6,-4 M0,-4 L5,-10 M0,10 L6,3" stroke="#9A6A14" stroke-width="1"/><path d="M0,18 q-4,10 6,14 q8,2 6,-6" stroke="#E8B53A" stroke-width="2" fill="none"/></g>`;
-  },
-  curl(x, y, s, r) {
-    const d = r() < .5 ? 1 : -1, k = s / 40;
-    return `<g transform="translate(${x},${y}) scale(${d * k},${k})"><path d="M-20,10 C-10,-12 10,-14 14,-2 C18,10 2,14 0,4 C-1,-2 6,-4 7,0" stroke="#E8B53A" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-      <path d="M-20,10 q-2,-8 -10,-10 M-12,0 q-4,-8 -12,-6" stroke="#E8B53A" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>`;
   },
   /* ---- Гжель ---- */
   rose(x, y, s, r) {
@@ -157,12 +139,11 @@ const DECOR = {
   classic: { gap: ["letter"], free: [], freeN: 0 },
   notebook: { gap: ["star", "spiral", "heart", "smile", "arrow", "word", "word"], free: [], freeN: 0 },
   news: { gap: ["halftone", "headline", "crossword", "column", "halftone", "headline"], free: [], freeN: 0 },
-  khokh: { gap: ["berries", "leaf", "curl", "berries", "leaf", "curl"], free: ["curl"], freeN: .12 },
   gzhel: { gap: ["rose", "gleaf", "gdots", "rose", "gleaf"], free: ["gleaf"], freeN: .15 },
   telegraph: { gap: ["stamp", "postmark", "tape", "stampword", "stamp"], free: [], freeN: 0 },
   neon: { gap: ["nword", "nheart", "narrow", "nstar", "nword"], free: ["brick"], freeN: .6 }
 };
-const SIZE = { letter: 44, star: 28, spiral: 26, heart: 26, smile: 28, arrow: 34, word: 26, halftone: 40, headline: 22, crossword: 40, column: 36, berries: 34, leaf: 34, curl: 34, rose: 40, gleaf: 30, gdots: 26, stamp: 40, postmark: 40, tape: 26, stampword: 26, nword: 30, nheart: 28, narrow: 34, nstar: 26, brick: 1 };
+const SIZE = { letter: 44, star: 28, spiral: 26, heart: 26, smile: 28, arrow: 34, word: 26, halftone: 40, headline: 22, crossword: 40, column: 36, rose: 40, gleaf: 30, gdots: 26, stamp: 40, postmark: 40, tape: 26, stampword: 26, nword: 30, nheart: 28, narrow: 34, nstar: 26, brick: 1 };
 
 function decorDefs() {
   return `<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
