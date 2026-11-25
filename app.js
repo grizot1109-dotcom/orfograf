@@ -775,7 +775,7 @@ function myProfileStats() {
   const topics = {}; for (const t of TOPICS) topics[t.id] = Math.round(mastery(t) * 100);
   return { v: 1, total: state.total, lvl: lvl().L, streak: streak(), ans: n, acc: n ? Math.round(ok / n * 100) : 0,
     words: all.filter(s => s.b >= 2).length, blitz: state.blitzBest || 0, lessons: Object.values(state.lessons).reduce((a, b) => a + b, 0),
-    topics, medals: state.medals || {}, pins: (state.pins || []).slice(0, 5), skin: skinNow(), frame: myFrame(), bg: myBg() };
+    topics, medals: Object.fromEntries((state.pins || []).slice(0, 5).filter(id => (state.medals || {})[id]).map(id => [id, state.medals[id]])), pins: (state.pins || []).slice(0, 5), skin: skinNow(), frame: myFrame(), bg: myBg() };
 }
 async function syncProfile() {
   const st = myProfileStats(), js = JSON.stringify(st);
@@ -812,8 +812,7 @@ async function openUser(id) {
         <div class="tile"><b>${s ? fmt(s.total) : "—"}</b><small>знаков всего</small></div>
         <div class="tile"><b>${s ? s.acc + "%" : "—"}</b><small>точность · ${s ? fmt(s.ans) : 0} ${plural(s ? s.ans : 0, "ответ", "ответа", "ответов")}</small></div>
         <div class="tile"><b>${s ? s.blitz : "—"}</b><small>рекорд блица</small></div></div>
-      ${s && s.medals ? `${pinsHTML(s.pins || [], s.medals, false)}<div class="ch" style="margin-top:6px"><h2>Медали</h2><span>${Object.keys(s.medals).filter(k => MEDAL[k]).length} из ${MEDALS.length}</span></div>
-        <div class="mgrid" style="margin-bottom:12px">${MEDALS.filter(m => s.medals[m.id]).map(m => medalTile(m.id, { medals: s.medals })).join("") || `<p class="muted">Пока нет медалей</p>`}</div>` : ""}
+      ${s && s.medals && (s.pins || []).some(id => s.medals[id]) ? `<div class="ch" style="margin-top:6px"><h2>Медали</h2><span>закреплённые</span></div>${pinsHTML(s.pins || [], s.medals, false)}` : ""}
       <div class="ch"><h2>Активность</h2><span>14 дней</span></div>
       <svg class="chart" viewBox="0 0 ${14 * W} ${H + 26}">${bars}</svg>
       ${s ? `<div class="ch" style="margin-top:14px"><h2>Темы</h2><span>${s.words} ${plural(s.words, "слово выучено", "слова выучено", "слов выучено")}</span></div>
