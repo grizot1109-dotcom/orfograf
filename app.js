@@ -197,6 +197,7 @@ function renderLearn() {
   $("#view").innerHTML = headerHTML(true) + `
     <div class="goal">${ring(d.n / GOAL)}<div><b>Цель дня ${Math.min(d.n, GOAL)} / ${GOAL}</b><small>${left ? `Ещё ${left} ${plural(left, "задание", "задания", "заданий")} — и огонёк горит` : "Цель выполнена, огонёк горит!"}</small></div></div>
     <div class="route"><div><h1>Маршрут</h1><span class="muted">${TOPICS.length} тем · ${total} заданий · все открыты</span></div><span class="avg">${avg}%</span></div>
+    <button class="thbtn" id="thAll"><span>📖</span><span class="tx"><b>Теория</b><small>правила, таблицы, исключения по всем темам</small></span><i>›</i></button>
     <div class="map" id="map" style="height:${H}px"><svg class="deco" id="deco" aria-hidden="true"></svg><svg class="path" id="mapPath"></svg>${nodes}
       <div class="finish" style="top:${H - 44}px">🏁 Финиш — ЕГЭ</div></div>`;
   const map = $("#map"), W = map.clientWidth;
@@ -213,6 +214,7 @@ function renderLearn() {
   deco.innerHTML = decorDefs() + decorSVG(skinNow(), W, H, gaps);
   $("#mapPath").setAttribute("viewBox", `0 0 ${W} ${H}`);
   $("#mapPath").innerHTML = `<path d="${p}" class="pb"/><path d="${p}" class="pw"/>${done}`;
+  $("#thAll").onclick = theoryListSheet;
   map.onclick = e => { const b = e.target.closest("[data-topic]"); if (b) topicSheet(+b.dataset.topic); };
 }
 function topicSheet(i) {
@@ -222,9 +224,9 @@ function topicSheet(i) {
     <div class="bar"><s style="width:${Math.round(m * 100)}%;background:${col}"></s></div>
     <div class="ptsinfo">★ ${basePts(t.list[0])} зн. за верный ответ · +${REVIEW_BONUS} за повторение вовремя</div>
     <div class="muted" style="font-size:13px">Выучено ${Math.round(m * 100)}% · видел ${seen} из ${t.list.length}${due ? ` · ${due} ждут повторения` : ""}${state.best[t.id] ? ` · лучший урок ${state.best[t.id]}/${LESSON}` : ""}</div>
-    <div class="btns"><button class="btn" id="goLesson" style="background:${col};box-shadow:0 4px 0 color-mix(in srgb,${col} 60%,#000)">${state.lessons[t.id] ? "Продолжить" : "Начать урок"}</button><button class="btn gh" id="goRule">Правило</button></div>`, s => {
+    <div class="btns"><button class="btn" id="goLesson" style="background:${col};box-shadow:0 4px 0 color-mix(in srgb,${col} 60%,#000)">${state.lessons[t.id] ? "Продолжить" : "Начать урок"}</button><button class="btn gh" id="goRule">Теория</button></div>`, s => {
     s.querySelector("#goLesson").addEventListener("click", () => { closeSheet(); startLesson(t); });
-    s.querySelector("#goRule").addEventListener("click", () => ruleSheet(t));
+    s.querySelector("#goRule").addEventListener("click", () => theorySheet(t));
   });
 }
 function ruleSheet(t) { openSheet(`<h2>${esc(t.name)}</h2><div class="muted">${esc(t.ege)}</div><div class="rule">${t.rule}</div><div class="btns"><button class="btn gh" id="cl">Понятно</button></div>`, s => s.querySelector("#cl").onclick = closeSheet); }
@@ -266,9 +268,9 @@ function drawQ() {
     card = `<div class="sent">${it.words.map((w, i) => esc(w) + (i < it.words.length - 1 ? `<button class="gp" data-g="${i}" aria-label="Запятая после «${esc(w)}»"></button> ` : "")).join("")}</div><div class="h">Нажимай на промежутки, где нужна запятая</div>`;
     below = `<div class="kbd"><button class="btn" id="chk">Проверить</button></div>`;
   }
-  box.innerHTML = topHTML() + `<div class="big" id="card"><span class="lbl">${esc(it.topic.name)}</span><button class="rl" id="rl">Правило</button>${card}</div>${below}<div id="after"></div>`;
+  box.innerHTML = topHTML() + `<div class="big" id="card"><span class="lbl">${esc(it.topic.name)}</span><button class="rl" id="rl">Теория</button>${card}</div>${below}<div id="after"></div>`;
   box.querySelector("#qx").onclick = () => quitLesson();
-  box.querySelector("#rl").onclick = () => ruleSheet(it.topic);
+  box.querySelector("#rl").onclick = () => theorySheet(it.topic, true);
   box.querySelectorAll("[data-o]").forEach(b => b.onclick = () => answer(L.opts[+b.dataset.o] === it.opts[0], b));
   box.querySelectorAll("[data-v]").forEach(b => b.onclick = () => answer(+b.dataset.v === it.idx, b));
   box.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { if (L.ans !== null) return; const g = +b.dataset.g; L.sel.has(g) ? L.sel.delete(g) : L.sel.add(g); b.classList.toggle("on"); });
@@ -304,9 +306,9 @@ function answer(ok, btn) {
   $("#after").innerHTML = `<div class="sheetA ${ok ? "" : "bad"}">
     <div class="t">${ok ? "✓ Верно!" : "✕ Почти!"}<span>${ok ? `+${pts} зн.${wasDue ? " · повтор" : ""}${L.combo >= 5 ? " · ×1,5" : ""}` : "+0 зн."}</span></div>
     ${ok && !it.note ? "" : `<div class="ans">${ansHTML}</div>`}
-    <div class="rr">${it.note ? esc(it.note) : ok ? "Так держать." : "Карточка вернётся через 10 минут."}${!ok && it.note ? " Карточка вернётся через 10 минут." : ""}<br><button id="rl2">Правило темы</button></div>
+    <div class="rr">${it.note ? esc(it.note) : ok ? "Так держать." : "Карточка вернётся через 10 минут."}${!ok && it.note ? " Карточка вернётся через 10 минут." : ""}<br><button id="rl2">Теория по теме</button></div>
     <button class="btn" id="next">${last ? "Итоги" : ok ? "Дальше" : "Понятно"}</button></div>`;
-  $("#rl2").onclick = () => ruleSheet(it.topic);
+  $("#rl2").onclick = () => theorySheet(it.topic, true);
   $("#next").onclick = next;
   $("#next").focus({ preventScroll: true });
 }
