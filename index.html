@@ -308,7 +308,10 @@ button.r{width:100%;text-align:left;font:inherit;color:inherit}
 .r:active{background:var(--sunk)}
 .uhead{display:flex;align-items:center;gap:14px;margin-bottom:12px}
 .ava.avbig{width:72px;height:72px;font-size:26px;outline:3px solid var(--co);outline-offset:2px}
-.unm{font:800 20px var(--fd)}
+.unm{font:800 clamp(16px,5vw,20px)/1.15 var(--fd);overflow-wrap:anywhere;word-break:break-word}
+.uhead>div:last-child{flex:1;min-width:0}
+.sheet{overflow-x:hidden}
+.prof .nm{overflow-wrap:anywhere;word-break:break-word;flex-wrap:wrap}
 .hcell{border-radius:10px;padding:8px 4px;text-align:center;font:600 12px/1.2 var(--fb);color:#fff}
 .hcell small{display:block;font-weight:500;opacity:.9}
 /* рамки и фоны */

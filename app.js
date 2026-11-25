@@ -819,7 +819,7 @@ async function openUser(id) {
     const max = Math.max(GOAL, ...list.map(d => d.attempts)), H = 60, W = 22;
     const bars = list.map((d, i) => { const h = d.attempts / max * H, ho = (d.correct || 0) / max * H, X = i * W + 3;
       return `<rect x="${X}" y="${6 + H - h}" width="${W - 6}" height="${h}" rx="3" fill="var(--cor)"/><rect x="${X}" y="${6 + H - ho}" width="${W - 6}" height="${ho}" rx="3" fill="var(--mi)"/>${d.attempts ? "" : `<rect x="${X}" y="${H + 5}" width="${W - 6}" height="1.5" fill="var(--line)"/>`}<text x="${X + (W - 6) / 2}" y="${H + 20}" text-anchor="middle">${+d.day.slice(8)}</text>`; }).join("");
-    const heat = m => m >= 80 ? "var(--mi)" : m >= 40 ? "var(--le-d)" : m > 0 ? "var(--cor)" : "var(--line)";
+    const heat = m => m >= 80 ? "var(--mi)" : m >= 40 ? "var(--le-d)" : m > 0 ? "var(--cor)" : "var(--sunk)";
     $("#ubody").innerHTML = `
       <div class="muted" style="margin:-4px 0 10px">Уровень ${s ? s.lvl : last.level || 1} · 🔥 ${s ? s.streak : last.streak || 0} ${plural(s ? s.streak : last.streak || 0, "день", "дня", "дней")} подряд${s && s.skin ? ` · оформление «${esc((SKINS.find(k => k.id === s.skin) || {}).name || "Классика")}»` : ""}</div>
       <div class="stiles">
