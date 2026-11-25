@@ -186,7 +186,7 @@ async function refreshRankMedals(force) {
     }
     state.duels = { wins, opps: opps.size };
     prefs.rankAt = today; savePrefs(); save();
-    checkMedals();
+    checkMedals(); checkCosmetics();
   } catch (e) { console.warn("медали:", e.message); }
 }
 

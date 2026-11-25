@@ -117,11 +117,12 @@ const nameColor = n => { let h = 0; for (const ch of String(n)) h = (h * 31 + ch
 const photos = new Map();
 const validPhoto = x => typeof x === "string" && x.length <= 40000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x);
 if (/^photo:/.test(me.avatar || "") && validPhoto(me.photo)) photos.set(me.id, me.photo);
-function avaHTML(id, name, av, cls = "") {
+function avaHTML(id, name, av, cls = "", frameId) {
   const img = /^photo:/.test(String(av || "")) && photos.get(id);
-  if (img) return `<span class="ava ${cls}"><img src="${esc(img)}" alt=""></span>`;
   const letter = (String(name || "?").trim()[0] || "?").toUpperCase();
-  return `<span class="ava ${cls}" style="background:${nameColor(name || "?")}">${esc(letter)}</span>`;
+  const inner = img ? `<span class="ava ${cls}"><img src="${esc(img)}" alt=""></span>` : `<span class="ava ${cls}" style="background:${nameColor(name || "?")}">${esc(letter)}</span>`;
+  const fr = frameId !== undefined ? frameId : (typeof frameOf === "function" ? frameOf(id) : "none");
+  return fr && fr !== "none" ? `<span class="avw fr ${cls}">${inner}${frameSVG(fr)}</span>` : inner;
 }
 const statusOf = av => { const s = String(av || "").split(";")[1] || ""; return AV_EMOJI.includes(s) ? `<span class="stemo">${s}</span>` : ""; };
 async function loadPhotos(rows) {
@@ -309,7 +310,7 @@ function finishLesson() {
     if (perfect && h >= 23) state.cnt.night = (state.cnt.night || 0) + 1;
     if (perfect && h < 7) state.cnt.morning = (state.cnt.morning || 0) + 1;
   }
-  save(); syncSoon(); setTimeout(() => checkMedals(), 300);
+  save(); syncSoon(); setTimeout(() => { checkMedals(); checkCosmetics(); }, 300);
   const lv = lvl(), st = streak();
   const idx = L.topic ? TOPICS.indexOf(L.topic) : -1;
   const msgs = [];
@@ -514,6 +515,8 @@ async function loadBoard() {
     ]);
     board.rows = rows || []; board.duels = duels || []; board.err = null;
     for (const r of board.rows) { const t = Date.parse(r.updated_at) || 0; if (t > (lastSeen.get(r.player_id) || 0)) lastSeen.set(r.player_id, t); }
+    const pids = [...new Set(board.rows.map(r => r.player_id))].filter(x => x !== me.id && /^[0-9a-f-]{36}$/.test(x));
+    if (pids.length) try { const pr = await api(`ru_profiles?select=player_id,frame:stats->>frame,bg:stats->>bg&player_id=in.(${pids.join(",")})`); for (const r of pr || []) otherCos.set(r.player_id, { frame: FRAME[r.frame] ? r.frame : "none", bg: BG[r.bg] ? r.bg : "none" }); } catch {}
     await loadPhotos(board.rows);
   } catch (e) { board.err = e.message; }
   board.loading = false;
@@ -661,7 +664,7 @@ async function removePhoto() {
 function setStatus(e) { me.status = e; saveMe(); syncSoon(); render(); }
 function renderProfile() {
   const lv = lvl(), hasPhoto = /^photo:/.test(me.avatar || "");
-  $("#view").innerHTML = `<div class="prof">${avaHTML(me.id, me.name || "Ты", myAv())}
+  $("#view").innerHTML = `<div class="prof"><div class="phead">${bgSVG(myBg())}</div>${avaHTML(me.id, me.name || "Ты", myAv())}
       <div class="nm">${esc(me.name || "Без ника")} ${statusOf(myAv())}<button class="link" id="ren" style="font-size:13px">изменить</button></div>
       <div class="muted">Уровень ${lv.L} · до следующего ${lv.need - lv.cur} зн.</div>
       <div class="bar" style="max-width:280px;margin:10px auto 0"><s style="width:${Math.round(lv.cur / lv.need * 100)}%;background:var(--co)"></s></div>
@@ -674,13 +677,14 @@ function renderProfile() {
     <div class="card"><h2>Статус</h2><p class="muted" style="margin:4px 0 0;font-size:14px">Стоит рядом с ником.</p>
       <div class="emojis">${AV_EMOJI.map(e => `<button data-e="${e}" aria-pressed="${e === me.status}" aria-label="${e}">${e}</button>`).join("")}</div>
       ${me.status ? `<button class="link" id="stReset">Убрать статус</button>` : ""}</div>
+    ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
     <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
-  bindMedalClicks($("#view"));
+  bindMedalClicks($("#view")); bindCosmetics($("#view"));
   document.querySelectorAll(".emojis button").forEach(b => b.onclick = () => setStatus(b.dataset.e === me.status ? "" : b.dataset.e));
   const sr = $("#stReset"); if (sr) sr.onclick = () => setStatus("");
   const af = $("#avFile"); if (af) af.onchange = () => { if (af.files && af.files[0]) uploadPhoto(af.files[0]); };
@@ -771,7 +775,7 @@ function myProfileStats() {
   const topics = {}; for (const t of TOPICS) topics[t.id] = Math.round(mastery(t) * 100);
   return { v: 1, total: state.total, lvl: lvl().L, streak: streak(), ans: n, acc: n ? Math.round(ok / n * 100) : 0,
     words: all.filter(s => s.b >= 2).length, blitz: state.blitzBest || 0, lessons: Object.values(state.lessons).reduce((a, b) => a + b, 0),
-    topics, medals: state.medals || {}, pins: (state.pins || []).slice(0, 5), skin: skinNow() };
+    topics, medals: state.medals || {}, pins: (state.pins || []).slice(0, 5), skin: skinNow(), frame: myFrame(), bg: myBg() };
 }
 async function syncProfile() {
   const st = myProfileStats(), js = JSON.stringify(st);
@@ -782,7 +786,8 @@ async function syncProfile() {
 async function openUser(id) {
   const row = (board.rows || []).find(r => r.player_id === id) || {};
   const name = id === me.id ? me.name : row.name || "Игрок", av = id === me.id ? myAv() : row.avatar || "";
-  openSheet(`<div class="uprof"><div class="uhead">${avaHTML(id, name, av, "avbig")}<div><div class="unm">${esc(name)} ${statusOf(av)}</div>${olHTML(id)}</div></div><div id="ubody"><div class="empty">Загружаю профиль…</div></div></div>`);
+  const oc = id === me.id ? { frame: myFrame(), bg: myBg() } : otherCos.get(id) || {};
+  openSheet(`<div class="uprof"><div class="phead sh" id="uBg">${bgSVG(oc.bg)}</div><div class="uhead">${avaHTML(id, name, av, "avbig", oc.frame || "none")}<div><div class="unm">${esc(name)} ${statusOf(av)}</div>${olHTML(id)}</div></div><div id="ubody"><div class="empty">Загружаю профиль…</div></div></div>`);
   try {
     const from = dayKey(daysAgo(13));
     const [pr, days] = await Promise.all([
@@ -790,6 +795,7 @@ async function openUser(id) {
       api(`ru_scores?select=day,points,attempts,correct,streak,level&player_id=eq.${id}&day=gte.${from}&order=day.asc`)
     ]);
     const s = (pr && pr[0] && pr[0].stats) || null, D = new Map((days || []).map(d => [d.day, d]));
+    if (s && id !== me.id) { otherCos.set(id, { frame: FRAME[s.frame] ? s.frame : "none", bg: BG[s.bg] ? s.bg : "none" }); const ub = $("#uBg"); if (ub) ub.innerHTML = bgSVG(otherCos.get(id).bg); const uh = document.querySelector(".uhead"); if (uh) uh.firstElementChild.outerHTML = avaHTML(id, name, av, "avbig", otherCos.get(id).frame); }
     if (id === me.id) for (const [k, d] of Object.entries(state.days)) if (k >= from) D.set(k, { day: k, points: d.pts, attempts: d.n, correct: d.ok });
     const last = (days || []).slice(-1)[0] || {};
     const week = [...D.values()].filter(d => d.day >= dayKey(weekStart())).reduce((a, d) => a + d.points, 0);
@@ -848,7 +854,7 @@ document.addEventListener("keydown", e => {
 /* ---------- Старт ---------- */
 applySkin(skinNow());
 render();
-setTimeout(() => { checkMedals(); refreshRankMedals(); }, 1200);
+setTimeout(() => { checkMedals(); checkCosmetics(); refreshRankMedals(); }, 1200);
 if (me.name) { syncScore(); if (tab === "friends") loadBoard(); if (/^photo:/.test(me.avatar || "")) loadPhotos([{ player_id: me.id, avatar: me.avatar }]).then(r => r && render()); }
 {
   const q = new URLSearchParams(location.search).get("duel") || prefs.pendingDuel;
