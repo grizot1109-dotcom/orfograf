@@ -36,8 +36,8 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-
 input{font:16px var(--fb);color:var(--ink)}
 .app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;position:relative}
 .view{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:calc(env(safe-area-inset-top,0px) + 12px) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
-.tb{display:grid;grid-template-columns:repeat(4,1fr);background:var(--paper);border-top:1px solid var(--line);padding:8px 6px calc(10px + env(safe-area-inset-bottom,0px))}
-.tb button{display:flex;flex-direction:column;align-items:center;gap:2px;font:600 11px var(--fb);color:var(--muted);padding:4px 0;position:relative}
+.tb{display:grid;grid-template-columns:repeat(5,1fr);background:var(--paper);border-top:1px solid var(--line);padding:8px 6px calc(10px + env(safe-area-inset-bottom,0px))}
+.tb button{display:flex;flex-direction:column;align-items:center;gap:2px;font:600 10.5px var(--fb);white-space:nowrap;color:var(--muted);padding:4px 0;position:relative}
 .tb svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tb button[aria-selected="true"]{color:var(--co)}
 .tb .dot{position:absolute;top:2px;left:calc(50% + 8px);min-width:17px;height:17px;border-radius:9px;background:var(--cor);color:#fff;font:700 10px/17px var(--fb);padding:0 4px}
@@ -240,6 +240,41 @@ h2{font:700 17px/1.2 var(--fd);margin:0}
 .mid{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:26;width:64px;height:64px;border-radius:50%;background:var(--le);color:#141733;display:grid;place-items:center;font:800 15px var(--fd);border:4px solid var(--bg)}
 .splitx{position:fixed;z-index:26;right:12px;top:50%;transform:translateY(-50%);background:var(--paper);color:var(--ink);width:40px;height:40px;border-radius:50%;font-size:18px}
 
+/* аватарка и статус */
+.stemo{font-size:.95em;margin-left:2px}
+.avbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.avbtns .btn{width:auto;flex:1;cursor:pointer}
+.emojis{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;margin:12px 0 8px}
+.emojis button{font-size:24px;height:46px;border-radius:12px;background:var(--sunk);border:1px solid var(--line)}
+.emojis button[aria-pressed="true"]{background:var(--co-soft);border:2px solid var(--co)}
+/* статистика */
+.stiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.stiles .tile{padding:14px 10px}
+.stiles .tile b{font-size:24px}
+.ch{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.ch span{font-size:12.5px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.srows{display:grid}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;text-align:left;padding:9px 0;border-top:1px solid var(--line)}
+.srow:first-child{border-top:0}
+.srow .nm{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow .nm i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.srow .num{font-size:12.5px;white-space:nowrap}
+.sbar{grid-column:1/-1;display:flex;height:8px;border-radius:8px;background:var(--sunk);overflow:hidden}
+.sbar s{display:block;height:100%}
+.weak{display:grid}
+.wk{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.wk:first-child{border-top:0}
+.wk div{flex:1}
+.wk b{font:600 16px var(--fs);display:block}
+.wk small{font-size:12px;color:var(--muted)}
+.pl{font:700 12.5px var(--fb);border-radius:99px;padding:3px 10px;white-space:nowrap}
+.pl.ok{background:var(--mi-soft);color:var(--mi)}.pl.mid{background:#FBEFD6;color:#A66A00}.pl.bad{background:var(--cor-soft);color:var(--cor)}
+.chart{width:100%;height:auto;display:block}
+.chart text{font:600 10px var(--fb);fill:var(--muted)}
+.chart .gl{stroke:var(--le-d);stroke-width:1;stroke-dasharray:3 3}
+.chart .gt{fill:var(--le-d);font-size:9.5px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-weight:600;font-size:14px;max-width:min(92vw,480px);text-align:center;animation:fade .2s}
 .empty{text-align:center;color:var(--muted);padding:18px 8px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
@@ -252,6 +287,7 @@ h2{font:700 17px/1.2 var(--fd);margin:0}
     <button role="tab" data-tab="learn"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4z"/><path d="M7 9.5V15c3 2.2 7 2.2 10 0V9.5"/></svg>Учиться</button>
     <button role="tab" data-tab="review"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M20 4v5h-5M4 20v-5h5"/></svg>Повторить<span class="dot" id="dueDot" hidden></span></button>
     <button role="tab" data-tab="friends"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><circle cx="17.5" cy="9" r="2.5"/><path d="M3 19.5c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M15.5 14.2c3 0 5.5 1.6 5.5 4.6"/></svg>Друзья</button>
+    <button role="tab" data-tab="stats"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>Статистика</button>
     <button role="tab" data-tab="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20.5c1-4 4-6 8-6s7 2 8 6"/></svg>Профиль</button>
   </nav>
 </div>

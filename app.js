@@ -22,7 +22,7 @@ const ls = {
   set(k, v) { try { localStorage.setItem(k, v); } catch {} }
 };
 const LS_KEY = "orfograf-v1";
-const blank = () => ({ v: 1, total: 0, items: {}, days: {}, best: {}, lessons: {}, blitzBest: 0 });
+const blank = () => ({ v: 1, total: 0, items: {}, days: {}, best: {}, lessons: {}, blitzBest: 0, log: [] });
 let state = blank();
 try { const s = JSON.parse(ls.get(LS_KEY) || "null"); if (s && s.v === 1) state = Object.assign(blank(), s); } catch {}
 const save = () => ls.set(LS_KEY, JSON.stringify(state));
@@ -37,9 +37,11 @@ function readMe() { try { const m = JSON.parse(ls.get(ME_KEY) || "null"); if (m 
 let me = readMe();
 if (!me) { me = { id: uuid(), secret: randHex(16), name: "" }; ls.set(ME_KEY, JSON.stringify(me)); }
 const saveMe = () => { const cur = readMe(); ls.set(ME_KEY, JSON.stringify(Object.assign(cur && cur.id === me.id ? cur : {}, me))); };
+/* те же статусы, что в «Формулографе» */
+const AV_EMOJI = ["⚽️", "🥊", "☕️", "🍌", "🌈", "🍄‍🟫", "🐖", "🐓", "🐁", "🐺", "🦅", "🦄", "🙉", "🐷", "🖕", "💪", "🤙", "👌", "🤡", "💩", "😈", "☠️", "😵", "🥱", "🤤", "🤔", "🥶", "🥵", "🤬", "🤓", "🧌", "🏳️‍🌈", "🏴‍☠️", "🇺🇦", "🇷🇺"];
 const myAv = () => {
   const ph = /^photo:[a-z0-9]{1,12}$/.test(me.avatar || "") ? me.avatar : "";
-  const st = typeof me.status === "string" && me.status.length <= 16 ? me.status : "";
+  const st = AV_EMOJI.includes(me.status) ? me.status : "";
   return st ? `${ph};${st}` : ph;
 };
 
@@ -94,12 +96,13 @@ function record(it, ok, combo) {
   if (ok) { s.ok++; s.b = Math.min(s.b + 1, INTERVALS.length - 1); s.due = Date.now() + INTERVALS[s.b]; }
   else { s.bad++; s.b = 0; s.due = Date.now() + INTERVALS[0]; }
   const pts = ok ? (combo >= 5 ? 9 : 6) : 0;
+  (state.log || (state.log = [])).push({ k: it.key, ok, t: Date.now() }); if (state.log.length > 400) state.log.splice(0, state.log.length - 400);
   addDay(ok, pts); save();
   return pts;
 }
 
 /* ---------- UI: общие ---------- */
-let tab = ["learn", "review", "friends", "profile"].includes(prefs.tab) ? prefs.tab : "learn";
+let tab = ["learn", "review", "friends", "stats", "profile"].includes(prefs.tab) ? prefs.tab : "learn";
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.tm); toast.tm = setTimeout(() => t.hidden = true, 2600); }
 function openSheet(html, onMount) {
   $("#sheet").innerHTML = `<div class="grab"></div>` + html; $("#shade").hidden = false;
@@ -111,13 +114,15 @@ const FLAME = `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true
 const COLORS = ["#2F45E0", "#E0567F", "#F26A1B", "#16A66B", "#8B5CFF", "#14A3B8", "#C8502D", "#B8900A", "#4A5568", "#7A5AC8"];
 const nameColor = n => { let h = 0; for (const ch of String(n)) h = (h * 31 + ch.codePointAt(0)) >>> 0; return COLORS[h % COLORS.length]; };
 const photos = new Map();
+const validPhoto = x => typeof x === "string" && x.length <= 40000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x);
+if (/^photo:/.test(me.avatar || "") && validPhoto(me.photo)) photos.set(me.id, me.photo);
 function avaHTML(id, name, av, cls = "") {
   const img = /^photo:/.test(String(av || "")) && photos.get(id);
   if (img) return `<span class="ava ${cls}"><img src="${esc(img)}" alt=""></span>`;
   const letter = (String(name || "?").trim()[0] || "?").toUpperCase();
   return `<span class="ava ${cls}" style="background:${nameColor(name || "?")}">${esc(letter)}</span>`;
 }
-const statusOf = av => { const s = String(av || "").split(";")[1] || ""; return s && s.length <= 16 && /\p{Extended_Pictographic}/u.test(s) ? s : ""; };
+const statusOf = av => { const s = String(av || "").split(";")[1] || ""; return AV_EMOJI.includes(s) ? `<span class="stemo">${s}</span>` : ""; };
 async function loadPhotos(rows) {
   const need = [...new Set(rows.filter(r => /^photo:/.test(r.avatar || "") && !photos.has(r.player_id)).map(r => r.player_id))].filter(id => /^[0-9a-f-]{36}$/.test(id));
   if (!need.length) return false;
@@ -132,7 +137,7 @@ async function loadPhotos(rows) {
 function render() {
   document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
   const n = dueAll().length, dot = $("#dueDot"); dot.hidden = !n; dot.textContent = n > 99 ? "99+" : n;
-  ({ learn: renderLearn, review: renderReview, friends: renderFriends, profile: renderProfile })[tab]();
+  ({ learn: renderLearn, review: renderReview, friends: renderFriends, stats: renderStats, profile: renderProfile })[tab]();
 }
 $("#tabs").addEventListener("click", e => {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
@@ -479,7 +484,7 @@ function syncScore() {
   return syncing;
 }
 setInterval(() => { if (document.visibilityState === "visible" && me.name) { syncScore(); if (tab === "friends" && $("#ov").hidden) loadBoard(); } }, 60000);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { me = readMe() || me; render(); if (me.name) syncScore(); } });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { me = readMe() || me; if (/^photo:/.test(me.avatar || "") && validPhoto(me.photo)) photos.set(me.id, me.photo); render(); if (me.name) syncScore(); } });
 
 /* ---------- Друзья ---------- */
 let period = ["day", "week", "month"].includes(prefs.period) ? prefs.period : "week";
@@ -615,7 +620,7 @@ function duelResultsSheet(code) {
   });
 }
 
-/* ---------- Профиль ---------- */
+/* ---------- Профиль: фото, статус, награды ---------- */
 function achievements() {
   const all = Object.values(state.items), words = all.filter(s => s.b >= 2).length;
   const maxStreak = (() => {
@@ -629,39 +634,133 @@ function achievements() {
   })();
   return [
     ["1", "Первый урок", Object.values(state.lessons).some(Boolean)],
-    ["10", "10 верных подряд в уроке", Object.values(state.best).some(b => b >= 10)],
+    ["10", "Урок без ошибок", Object.values(state.best).some(b => b >= 10)],
     ["7🔥", "Огонёк 7 дней", maxStreak >= 7],
     ["100", "100 слов выучено", words >= 100],
     ["Б", "Блиц на 25+", (state.blitzBest || 0) >= 25],
     ["★", "Все темы начаты", TOPICS.every(t => state.lessons[t.id])]
   ];
 }
+async function uploadPhoto(file) {
+  if (!me.name) { toast("Сначала придумай ник во вкладке «Друзья»"); return; }
+  const st = $("#avStatus"); if (st) st.textContent = "Загружаю…";
+  try {
+    const url = URL.createObjectURL(file), img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    const S = 128, c = document.createElement("canvas"); c.width = c.height = S;
+    const g = c.getContext("2d"), m = Math.min(img.naturalWidth, img.naturalHeight);
+    g.drawImage(img, (img.naturalWidth - m) / 2, (img.naturalHeight - m) / 2, m, m, 0, 0, S, S);
+    URL.revokeObjectURL(url);
+    let q = 0.82, data = c.toDataURL("image/jpeg", q);
+    while (data.length > 38000 && q > 0.35) { q -= 0.1; data = c.toDataURL("image/jpeg", q); }
+    await api("rpc/set_avatar", { method: "POST", body: JSON.stringify({ p_id: me.id, p_secret: me.secret, p_name: me.name, p_img: data }) });
+    me.photo = data; me.avatar = "photo:" + Date.now().toString(36); saveMe(); photos.set(me.id, data);
+    syncSoon(); render(); toast("Фото обновлено");
+  } catch (e) {
+    if (st) st.textContent = "";
+    toast("Не получилось загрузить фото. Проверь интернет и попробуй другое фото.");
+  }
+}
+async function removePhoto() {
+  try { await api("rpc/set_avatar", { method: "POST", body: JSON.stringify({ p_id: me.id, p_secret: me.secret, p_name: me.name, p_img: "" }) }); } catch (e) {}
+  me.photo = ""; me.avatar = ""; saveMe(); photos.delete(me.id); syncSoon(); render();
+}
+function setStatus(e) { me.status = e; saveMe(); syncSoon(); render(); }
 function renderProfile() {
-  const lv = lvl(), all = Object.values(state.items), n = all.reduce((a, s) => a + s.n, 0), ok = all.reduce((a, s) => a + s.ok, 0);
-  const words = all.filter(s => s.b >= 2).length, ach = achievements();
-  const heat = m => m >= .8 ? "var(--mi)" : m >= .4 ? "var(--le-d)" : m > 0 ? "var(--cor)" : "var(--line)";
+  const lv = lvl(), ach = achievements(), hasPhoto = /^photo:/.test(me.avatar || "");
   $("#view").innerHTML = `<div class="prof">${avaHTML(me.id, me.name || "Ты", myAv())}
       <div class="nm">${esc(me.name || "Без ника")} ${statusOf(myAv())}<button class="link" id="ren" style="font-size:13px">изменить</button></div>
       <div class="muted">Уровень ${lv.L} · до следующего ${lv.need - lv.cur} зн.</div>
       <div class="bar" style="max-width:280px;margin:10px auto 0"><s style="width:${Math.round(lv.cur / lv.need * 100)}%;background:var(--co)"></s></div>
-      <div class="tiles3"><div class="tile"><b>${streak()}</b><small>огонёк</small></div><div class="tile"><b>${n ? Math.round(ok / n * 100) : 0}%</b><small>точность</small></div><div class="tile"><b>${fmt(words)}</b><small>выучено</small></div></div>
       <div class="ach">${ach.map(a => `<i class="${a[2] ? "on" : ""}" title="${esc(a[1])}">${a[0]}</i>`).join("")}</div>
       <div class="muted" style="font-size:12px">Награды: ${ach.filter(a => a[2]).length} из ${ach.length}. Нажми на кружок, чтобы узнать за что.</div></div>
-    <div class="sec">Темы: зелёное — знаешь, жёлтое — учишь, красное — подтянуть</div>
-    <div class="hgrid" id="hg">${TOPICS.map((t, i) => { const m = mastery(t); return `<button data-t="${i}" style="background:${heat(m)};${m ? "" : "color:var(--muted)"}">${esc(t.name)}<small>${Math.round(m * 100)}%</small></button>`; }).join("")}</div>
-    <div class="sec">Настройки</div>
-    <div class="card" style="display:grid;gap:10px">
-      <button class="link" id="reset" style="text-align:left;color:var(--cor)">Сбросить прогресс</button>
-    </div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник и фото общие с «Формулографом». Фото и статус меняются там.</p>`;
+    <div class="card" style="margin-top:16px"><h2>Аватарка</h2><p class="muted" style="margin:4px 0 0;font-size:14px">${hasPhoto ? "Стоит твоё фото." : "Пока стоит первая буква ника — загрузи фото из галереи."} Видна в рейтинге и дуэлях.</p>
+      ${me.name ? `<div class="avbtns"><label class="btn" for="avFile">Загрузить фото</label><input type="file" id="avFile" accept="image/*" hidden>${hasPhoto ? `<button class="btn gh" id="avDel">Убрать фото</button>` : ""}</div><div class="muted" id="avStatus" style="font-size:13px"></div>
+      <p class="muted" style="font-size:12px;margin:8px 0 0">Фото увидят все в рейтинге. Не ставь то, что не хотел бы показывать другим.</p>`
+      : `<p class="err">Сначала придумай ник во вкладке «Друзья».</p>`}</div>
+    <div class="card"><h2>Статус</h2><p class="muted" style="margin:4px 0 0;font-size:14px">Стоит рядом с ником.</p>
+      <div class="emojis">${AV_EMOJI.map(e => `<button data-e="${e}" aria-pressed="${e === me.status}" aria-label="${e}">${e}</button>`).join("")}</div>
+      ${me.status ? `<button class="link" id="stReset">Убрать статус</button>` : ""}</div>
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
-  $("#hg").onclick = e => { const b = e.target.closest("[data-t]"); if (b) topicSheet(+b.dataset.t); };
   document.querySelectorAll(".ach i").forEach(i => i.onclick = () => toast(i.title + (i.classList.contains("on") ? " — получено" : " — ещё нет")));
-  $("#reset").onclick = () => openSheet(`<h2>Сбросить прогресс?</h2><p class="muted">Удалятся очки, выученные слова и огонёк на этом телефоне. Ник останется.</p><div class="btns"><button class="btn gh" id="no">Отмена</button><button class="btn" id="yes" style="background:var(--cor);box-shadow:none">Сбросить</button></div>`, s => {
+  document.querySelectorAll(".emojis button").forEach(b => b.onclick = () => setStatus(b.dataset.e === me.status ? "" : b.dataset.e));
+  const sr = $("#stReset"); if (sr) sr.onclick = () => setStatus("");
+  const af = $("#avFile"); if (af) af.onchange = () => { if (af.files && af.files[0]) uploadPhoto(af.files[0]); };
+  const ad = $("#avDel"); if (ad) ad.onclick = removePhoto;
+}
+
+/* ---------- Статистика ---------- */
+function topicAgg(t) {
+  let n = 0, ok = 0, bad = 0, seen = 0;
+  for (const it of t.list) { const s = state.items[it.key]; if (!s) continue; n += s.n; ok += s.ok; bad += s.bad; if (s.n) seen++; }
+  return { n, ok, bad, seen };
+}
+function renderStats() {
+  const all = Object.values(state.items);
+  const tot = all.reduce((a, s) => a + s.n, 0), ok = all.reduce((a, s) => a + s.ok, 0);
+  const seen = all.filter(s => s.n).length, totalItems = ITEMS.size, st = streak();
+  const tiles = `<div class="stiles">
+    <div class="tile"><b>${fmt(tot)}</b><small>${plural(tot, "ответ", "ответа", "ответов")} всего</small></div>
+    <div class="tile"><b>${tot ? Math.round(ok / tot * 100) + "%" : "—"}</b><small>точность</small></div>
+    <div class="tile"><b>${st}</b><small>${plural(st, "день", "дня", "дней")} подряд</small></div>
+    <div class="tile"><b>${seen}<span class="muted" style="font-size:12px"> / ${totalItems}</span></b><small>заданий встречалось</small></div></div>`;
+  if (!tot) {
+    $("#view").innerHTML = headerHTML(true) + tiles + `<div class="card"><h2>Здесь появится статистика</h2><p class="muted" style="margin:6px 0 0">Пройди пару уроков на вкладке «Учиться». Тут будет видно точность по темам, слова, где ты чаще ошибаешься, и активность по дням.</p>
+      <div class="btns"><button class="btn" id="goL">Начать урок</button></div></div>`;
+    $("#goL").onclick = () => { tab = "learn"; prefs.tab = tab; savePrefs(); render(); };
+    return;
+  }
+  const rows = TOPICS.map(t => ({ t, ...topicAgg(t) })).sort((a, b) => (a.n ? a.ok / a.n : 2) - (b.n ? b.ok / b.n : 2)).map(r => {
+    const col = look(r.t)[0];
+    if (!r.n) return `<button class="srow" data-t="${TOPICS.indexOf(r.t)}"><span class="nm"><i style="background:${col}"></i>${esc(r.t.name)}</span><span class="num muted">не решал</span><span class="sbar"></span></button>`;
+    const a = Math.round(r.ok / r.n * 100);
+    return `<button class="srow" data-t="${TOPICS.indexOf(r.t)}"><span class="nm"><i style="background:${col}"></i>${esc(r.t.name)}</span><span class="num"><b>${a}%</b> · ошибок ${r.bad}</span>
+      <span class="sbar"><s style="width:${r.ok / r.n * 100}%;background:var(--mi)"></s><s style="width:${r.bad / r.n * 100}%;background:var(--cor)"></s></span></button>`;
+  }).join("");
+  const sc = s => (s.ok + 1) / (s.n + 2);
+  const weak = [...ITEMS.values()].map(it => ({ it, s: state.items[it.key] })).filter(x => x.s && x.s.bad > 0)
+    .sort((a, b) => sc(a.s) - sc(b.s) || b.s.n - a.s.n).slice(0, 8);
+  const pill = s => { const r = s.ok / s.n; return r >= .8 ? "ok" : r >= .5 ? "mid" : "bad"; };
+  const weakHtml = weak.length ? weak.map(({ it, s }) => `<div class="wk"><div><b>${esc(correctText(it))}</b><small>${esc(it.topic.name)}</small></div><span class="pl ${pill(s)}">${s.ok}/${s.n}</span></div>`).join("")
+    : `<p class="muted">Ошибок пока нет. Отлично!</p>`;
+  // активность за 14 дней
+  const days = []; for (let i = 13; i >= 0; i--) { const d = daysAgo(i); days.push({ d, v: state.days[dayKey(d)] || { n: 0, ok: 0, pts: 0 } }); }
+  const max = Math.max(GOAL, ...days.map(x => x.v.n)), H = 90, W = 24;
+  const goalY = 12 + H - GOAL / max * H;
+  const bars = days.map((x, i) => {
+    const h = x.v.n / max * H, hOk = x.v.ok / max * H, X = i * W + 4, today = i === 13;
+    return `<rect x="${X}" y="${12 + H - h}" width="${W - 7}" height="${h}" rx="3" fill="var(--cor)"/>
+      <rect x="${X}" y="${12 + H - hOk}" width="${W - 7}" height="${hOk}" rx="3" fill="var(--mi)"/>
+      ${x.v.n ? `<text x="${X + (W - 7) / 2}" y="${8 + H - h}" text-anchor="middle">${x.v.n}</text>` : `<rect x="${X}" y="${H + 11}" width="${W - 7}" height="1.5" fill="var(--line)"/>`}
+      <text x="${X + (W - 7) / 2}" y="${H + 27}" text-anchor="middle" ${today ? 'font-weight="700"' : ""}>${x.d.getDate()}</text>`;
+  }).join("");
+  const weekN = days.slice(7).reduce((a, x) => a + x.v.n, 0), weekP = days.slice(7).reduce((a, x) => a + x.v.pts, 0);
+  const log = (state.log || []).filter(l => !l.ok && ITEMS.has(l.k)).slice(-6).reverse();
+  const mistHtml = log.length ? log.map(l => { const it = ITEMS.get(l.k), dt = new Date(l.t);
+      return `<div class="wk"><div><b>${esc(correctText(it))}</b><small>${esc(it.topic.name)} · ${dt.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}, ${dt.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small></div><span class="pl bad">ошибка</span></div>`; }).join("")
+    : `<p class="muted">Пока без ошибок.</p>`;
+  $("#view").innerHTML = headerHTML(true) + tiles + `
+    <div class="card"><div class="ch"><h2>Темы</h2><span>сначала самые слабые</span></div>
+      <div class="legend"><span><i style="background:var(--mi)"></i>верно</span><span><i style="background:var(--cor)"></i>неверно</span></div>
+      <div class="srows" id="srows">${rows}</div></div>
+    <div class="card"><div class="ch"><h2>Повторить в первую очередь</h2><span>верных из попыток</span></div><div class="weak">${weakHtml}</div>
+      ${weak.length ? `<div class="btns"><button class="btn" id="drill">Тренировать слабые</button></div>` : ""}</div>
+    <div class="card"><div class="ch"><h2>Активность</h2><span>14 дней · за неделю ${weekN} ${plural(weekN, "ответ", "ответа", "ответов")}, ${fmt(weekP)} зн.</span></div>
+      <svg class="chart" viewBox="0 0 ${14 * W + 2} ${H + 32}" role="img" aria-label="Ответы по дням"><line x1="0" x2="${14 * W}" y1="${goalY}" y2="${goalY}" class="gl"/><text x="${14 * W}" y="${goalY - 4}" text-anchor="end" class="gt">цель ${GOAL}</text>${bars}</svg></div>
+    <div class="card"><div class="ch"><h2>Последние ошибки</h2></div><div class="weak">${mistHtml}</div></div>
+    <div class="card"><div class="ch"><h2>Рекорды</h2></div><div class="weak">
+      <div class="wk"><div><b>Блиц 60 секунд</b><small>лучший результат</small></div><span class="pl ok">${state.blitzBest || 0}</span></div>
+      <div class="wk"><div><b>Всего знаков</b><small>уровень ${lvl().L}</small></div><span class="pl ok">${fmt(state.total)}</span></div>
+      <div class="wk"><div><b>Уроков пройдено</b><small>во всех темах</small></div><span class="pl ok">${Object.values(state.lessons).reduce((a, b) => a + b, 0)}</span></div></div></div>
+    <div style="text-align:center;margin:8px 0 16px"><button class="link" id="reset" style="color:var(--cor)">Сбросить статистику</button></div>`;
+  $("#srows").onclick = e => { const b = e.target.closest("[data-t]"); if (b) topicSheet(+b.dataset.t); };
+  const dr = $("#drill"); if (dr) dr.onclick = () => { L = { title: "Слабые места", topic: null, items: shuffle(weak.map(x => x.it)), i: 0, res: [], combo: 0, pts: 0, lv0: lvl().L, st0: streak() }; showOv(); drawQ(); };
+  $("#reset").onclick = () => openSheet(`<h2>Сбросить статистику?</h2><p class="muted">Удалятся очки, выученные слова, огонёк и история на этом телефоне. Ник и фото останутся.</p><div class="btns"><button class="btn gh" id="no">Отмена</button><button class="btn" id="yes" style="background:var(--cor);box-shadow:none">Сбросить</button></div>`, s => {
     s.querySelector("#no").onclick = closeSheet;
-    s.querySelector("#yes").onclick = () => { state = blank(); save(); closeSheet(); render(); toast("Прогресс сброшен"); };
+    s.querySelector("#yes").onclick = () => { state = blank(); save(); closeSheet(); render(); toast("Статистика сброшена"); };
   });
 }
 
