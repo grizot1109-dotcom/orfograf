@@ -3,7 +3,6 @@
 const SB = { url: "https://ftgkjtfzhylmbvuldcfe.supabase.co", key: "sb_publishable_RbyH44pJCkVDO0ljNDY40g_qwR9wnMW" };
 const GOAL = 20;                 // заданий в день для огонька
 const LESSON = 10;               // карточек в уроке
-const UNLOCK = 7;                // столько верных в уроке открывает следующую тему
 const BLITZ_SEC = 60;
 const MIN = 60e3, DAY = 864e5;
 const INTERVALS = [10 * MIN, DAY, 3 * DAY, 7 * DAY, 16 * DAY, 35 * DAY, 90 * DAY];
@@ -73,7 +72,6 @@ const itemState = it => state.items[it.key] || { b: 0, due: 0, n: 0, ok: 0, bad:
 const isDue = it => { const s = state.items[it.key]; return !!s && s.n > 0 && s.due <= Date.now(); };
 const dueAll = () => [...ITEMS.values()].filter(isDue);
 const mastery = t => t.list.filter(it => itemState(it).b >= 2).length / t.list.length;
-const unlocked = i => i === 0 || (state.best[TOPICS[i - 1].id] || 0) >= UNLOCK || prefs.allOpen;
 const correctText = it => it.kind === "choice" ? it.pre + it.opts[0] + it.post
   : it.kind === "stress" ? it.word.map((c, i) => i === it.idx ? c.toUpperCase() : c).join("")
   : it.words.map((w, i) => w + (it.commas.has(i) ? "," : "")).join(" ");
@@ -142,9 +140,9 @@ $("#tabs").addEventListener("click", e => {
   if (tab === "friends") loadBoard();
 });
 
-function headerHTML() {
+function headerHTML(stick) {
   const st = streak(), lv = lvl();
-  return `<div class="hrow">
+  return `<div class="hrow ${stick ? "stick" : ""}">
     <span class="chip f ${st ? "" : "off"}" title="Огонёк: дней подряд с целью дня">${FLAME}${st}</span>
     <span class="chip g" title="Знаки — очки за ответы">★ ${fmt(state.total)}</span>
     <span class="chip" title="Уровень">ур. ${lv.L}</span>
@@ -157,41 +155,60 @@ function ring(v, size = 48, stroke = 6, col = "#FFD84D", bg = "rgba(255,255,255,
 }
 
 /* ---------- Учиться: карта тем ---------- */
+const LOOK = {
+  stress: ["#2F45E0", "А́"], dict: ["#8B5CFF", "Аб"], prepri: ["#E0567F", "пре"], zsyi: ["#F26A1B", "з/с"],
+  roots: ["#16A66B", "кос"], yo: ["#14A3B8", "ё"], nn: ["#C8502D", "нн"], ne: ["#7A5AC8", "не"],
+  hyph: ["#2E8B83", "по‑"], paro: ["#C99A06", "≈"], commas: ["#FF5A4E", ","]
+};
+const look = t => LOOK[t.id] || ["#2F45E0", t.name[0]];
 function renderLearn() {
   const d = today(), left = Math.max(0, GOAL - d.n);
-  let cur = TOPICS.findIndex((t, i) => unlocked(i) && mastery(t) < .8);
-  const X = [.5, .74, .52, .26, .48, .74, .5, .26, .48, .74, .5, .26];
-  const STEP = 118, H = TOPICS.length * STEP + 30;
+  const cur = TOPICS.findIndex(t => mastery(t) < .8);
+  const STEP = 132, TOP = 64, H = TOPICS.length * STEP + 110;
+  const total = TOPICS.reduce((a, t) => a + t.list.length, 0);
+  const avg = Math.round(TOPICS.reduce((a, t) => a + mastery(t), 0) / TOPICS.length * 100);
   const nodes = TOPICS.map((t, i) => {
-    const m = mastery(t), open = unlocked(i), done = m >= .8;
-    const cls = !open ? "lock" : i === cur ? "cur" : done ? "done" : "open";
-    const icon = !open ? "🔒" : done ? "✓" : i + 1;
-    const ringSvg = open && !done && m > 0 ? `<svg viewBox="0 0 78 78"><circle cx="39" cy="39" r="36" fill="none" stroke="var(--mi)" stroke-width="4" stroke-dasharray="${(226 * m).toFixed(0)} 226" stroke-linecap="round"/></svg>` : "";
-    return `<div class="node ${cls}" style="left:${X[i % X.length] * 100}%;top:${i * STEP + 40}px">
-      ${i === cur ? `<span class="go">${state.lessons[t.id] ? "Продолжить" : "Начать"}</span>` : ""}
-      <button class="c" data-topic="${i}" aria-label="${esc(t.name)}">${ringSvg}${icon}</button>
-      <small>${esc(t.name)}<i>${open ? Math.round(m * 100) + "% · " + esc(t.ege) : esc(t.ege)}</i></small></div>`;
+    const m = mastery(t), done = m >= .8, [col, g] = look(t), side = i % 2 ? "rgt" : "lft", due = t.list.filter(isDue).length;
+    const C = 2 * Math.PI * 44;
+    return `<div class="node ${side} ${i === cur ? "cur" : ""} ${done ? "done" : ""}" style="top:${i * STEP + TOP}px;--tc:${col}">
+      <button class="c" data-topic="${i}" aria-label="${esc(t.name)}">
+        <svg class="rg" viewBox="0 0 96 96"><circle cx="48" cy="48" r="44" class="tr"/><circle cx="48" cy="48" r="44" class="pr" stroke-dasharray="${(C * m).toFixed(1)} ${C.toFixed(1)}"/></svg>
+        <span class="g" style="font-size:${g.length > 2 ? 21 : g.length > 1 ? 26 : 34}px">${esc(g)}</span>
+        ${done ? `<span class="ok">✓</span>` : due ? `<span class="due">${due}</span>` : ""}
+        ${i === cur ? `<span class="go">${state.lessons[t.id] ? "Продолжить" : "Начать"}</span>` : ""}
+      </button>
+      <button class="lab" data-topic="${i}"><b>${esc(t.name)}</b><span>${esc(t.ege)} · ${t.list.length} ${plural(t.list.length, "задание", "задания", "заданий")}</span><i class="mb"><s style="width:${Math.max(m * 100, m ? 4 : 0)}%"></s></i><em>${Math.round(m * 100)}% выучено</em></button></div>`;
   }).join("");
-  $("#view").innerHTML = headerHTML() + `
+  // буквы-водяные знаки на фоне
+  let seed = 11; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  const LET = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+  let deco = ""; for (let k = 0; k < TOPICS.length * 2; k++) deco += `<span style="top:${(k / (TOPICS.length * 2)) * H + rnd() * 40}px;left:${k % 2 ? 4 + rnd() * 20 : 72 + rnd() * 22}%;font-size:${40 + rnd() * 60}px;transform:rotate(${-20 + rnd() * 40}deg)">${LET[Math.floor(rnd() * LET.length)]}</span>`;
+  $("#view").innerHTML = headerHTML(true) + `
     <div class="goal">${ring(d.n / GOAL)}<div><b>Цель дня ${Math.min(d.n, GOAL)} / ${GOAL}</b><small>${left ? `Ещё ${left} ${plural(left, "задание", "задания", "заданий")} — и огонёк горит` : "Цель выполнена, огонёк горит!"}</small></div></div>
-    <div class="map" id="map" style="height:${H}px"><svg class="path" id="mapPath"></svg>${nodes}</div>`;
+    <div class="route"><div><h1>Маршрут</h1><span class="muted">${TOPICS.length} тем · ${total} заданий · все открыты</span></div><span class="avg">${avg}%</span></div>
+    <div class="map" id="map" style="height:${H}px"><div class="deco" aria-hidden="true">${deco}</div><svg class="path" id="mapPath"></svg>${nodes}
+      <div class="finish" style="top:${H - 44}px">🏁 Финиш — ЕГЭ</div></div>`;
   const map = $("#map"), W = map.clientWidth;
-  const pts = TOPICS.map((_, i) => [X[i % X.length] * W, i * STEP + 40 + 37]);
-  let p = `M${pts[0][0]},${pts[0][1]}`;
-  for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i], my = (a[1] + b[1]) / 2; p += ` C${a[0]},${my} ${b[0]},${my} ${b[0]},${b[1]}`; }
+  const xs = i => (i % 2 ? .76 : .24) * W;
+  const pts = TOPICS.map((_, i) => [xs(i), i * STEP + TOP + 42]);
+  let p = `M${pts[0][0]},${pts[0][1]}`, done = "";
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], seg = ` C${a[0]},${a[1] + STEP * .55} ${b[0]},${b[1] - STEP * .55} ${b[0]},${b[1]}`;
+    p += seg;
+    if (mastery(TOPICS[i - 1]) >= .8) done += `<path d="M${a[0]},${a[1]}${seg}" class="pd" stroke="${look(TOPICS[i - 1])[0]}"/>`;
+  }
   $("#mapPath").setAttribute("viewBox", `0 0 ${W} ${H}`);
-  $("#mapPath").innerHTML = `<path d="${p}" fill="none" stroke="var(--line)" stroke-width="12" stroke-linecap="round" stroke-dasharray="1 20"/>`;
+  $("#mapPath").innerHTML = `<path d="${p}" class="pb"/><path d="${p}" class="pw"/>${done}`;
   map.onclick = e => { const b = e.target.closest("[data-topic]"); if (b) topicSheet(+b.dataset.topic); };
 }
 function topicSheet(i) {
-  const t = TOPICS[i], open = unlocked(i), m = mastery(t), due = t.list.filter(isDue).length;
+  const t = TOPICS[i], m = mastery(t), due = t.list.filter(isDue).length, [col, g] = look(t);
   const seen = t.list.filter(it => itemState(it).n > 0).length;
-  openSheet(`<h2>${esc(t.name)}</h2><div class="muted">${esc(t.ege)} · ${t.list.length} ${plural(t.list.length, "задание", "задания", "заданий")}</div>
-    <div class="bar"><s style="width:${Math.round(m * 100)}%"></s></div>
-    <div class="muted" style="font-size:13px">Выучено ${Math.round(m * 100)}% · видел ${seen} из ${t.list.length}${due ? ` · ${due} ждут повторения` : ""}</div>
-    ${open ? "" : `<p class="card" style="margin-top:14px">Тема откроется, когда в теме «${esc(TOPICS[i - 1].name)}» будет урок на ${UNLOCK} из ${LESSON}.</p>`}
-    <div class="btns">${open ? `<button class="btn" id="goLesson">Начать урок</button>` : ""}<button class="btn gh" id="goRule">Правило</button></div>`, s => {
-    s.querySelector("#goLesson")?.addEventListener("click", () => { closeSheet(); startLesson(t); });
+  openSheet(`<div class="tsh"><span class="tg" style="background:${col}">${esc(g)}</span><div><h2>${esc(t.name)}</h2><div class="muted">${esc(t.ege)} · ${t.list.length} ${plural(t.list.length, "задание", "задания", "заданий")}</div></div></div>
+    <div class="bar"><s style="width:${Math.round(m * 100)}%;background:${col}"></s></div>
+    <div class="muted" style="font-size:13px">Выучено ${Math.round(m * 100)}% · видел ${seen} из ${t.list.length}${due ? ` · ${due} ждут повторения` : ""}${state.best[t.id] ? ` · лучший урок ${state.best[t.id]}/${LESSON}` : ""}</div>
+    <div class="btns"><button class="btn" id="goLesson" style="background:${col};box-shadow:0 4px 0 color-mix(in srgb,${col} 60%,#000)">${state.lessons[t.id] ? "Продолжить" : "Начать урок"}</button><button class="btn gh" id="goRule">Правило</button></div>`, s => {
+    s.querySelector("#goLesson").addEventListener("click", () => { closeSheet(); startLesson(t); });
     s.querySelector("#goRule").addEventListener("click", () => ruleSheet(t));
   });
 }
@@ -207,7 +224,7 @@ function pickLesson(t) {
   const out = [...due.slice(0, 4), ...fresh.slice(0, LESSON), ...due.slice(4), ...rest];
   return shuffle([...new Set(out)].slice(0, LESSON));
 }
-function startLesson(t) { const i = TOPICS.indexOf(t); L = { title: t.name, topic: t, items: pickLesson(t), i: 0, res: [], combo: 0, pts: 0, lv0: lvl().L, st0: streak(), next0: i < TOPICS.length - 1 ? unlocked(i + 1) : true }; showOv(); drawQ(); }
+function startLesson(t) { L = { title: t.name, topic: t, items: pickLesson(t), i: 0, res: [], combo: 0, pts: 0, lv0: lvl().L, st0: streak() }; showOv(); drawQ(); }
 function startReview() {
   let items = shuffle(dueAll()).slice(0, 15);
   if (!items.length) items = [...ITEMS.values()].filter(it => itemState(it).bad > 0).sort((a, b) => (itemState(b).bad - itemState(b).ok) - (itemState(a).bad - itemState(a).ok)).slice(0, LESSON);
@@ -284,17 +301,14 @@ function finishLesson() {
   save(); syncSoon();
   const lv = lvl(), st = streak();
   const idx = L.topic ? TOPICS.indexOf(L.topic) : -1;
-  const opened = idx >= 0 && idx < TOPICS.length - 1 && !L.next0 && unlocked(idx + 1);
   const msgs = [];
   if (lv.L > L.lv0) msgs.push(`Новый уровень: ${lv.L}!`);
   if (st > L.st0) msgs.push(`Огонёк: ${st} ${plural(st, "день", "дня", "дней")} подряд`);
-  if (opened && TOPICS[idx + 1]) msgs.push(`Открыта тема «${TOPICS[idx + 1].name}»`);
-  if (L.topic && ok < UNLOCK && idx < TOPICS.length - 1 && !unlocked(idx + 1)) msgs.push(`Набери ${UNLOCK} из ${LESSON}, чтобы открыть следующую тему`);
   const wrong = L.items.filter((_, i) => !L.res[i]);
   $("#ovIn").innerHTML = `<div class="fin">
     <div class="muted">${esc(L.title)}</div>
     <div class="score">${ok}/${n}</div>
-    <h2>${ok === n ? "Идеально!" : ok >= UNLOCK ? "Отличный урок!" : "Хорошая тренировка"}</h2>
+    <h2>${ok === n ? "Идеально!" : ok >= 7 ? "Отличный урок!" : "Хорошая тренировка"}</h2>
     <div class="tiles"><div class="tile"><b>+${L.pts}</b><small>знаков</small></div><div class="tile"><b>${Math.min(today().n, GOAL)}/${GOAL}</b><small>цель дня</small></div><div class="tile"><b>${st}</b><small>огонёк</small></div></div>
     ${msgs.map(m => `<div class="chip" style="margin-bottom:6px">${esc(m)}</div>`).join("")}
     ${wrong.length ? `<div class="sec" style="align-self:flex-start">Ошибки — вернутся на повторение</div><div class="mist">${wrong.map(it => `<div>${esc(correctText(it))}</div>`).join("")}</div>` : ""}
@@ -306,7 +320,7 @@ function finishLesson() {
 /* ---------- Блиц: верно или ошибка ---------- */
 let B = null;
 function blitzPool() {
-  const open = TOPICS.filter((t, i) => unlocked(i) && t.kind !== "commas");
+  const open = TOPICS.filter(t => t.kind !== "commas");
   return open.flatMap(t => t.list);
 }
 function makeStmt(it, variant) {
@@ -619,7 +633,7 @@ function achievements() {
     ["7🔥", "Огонёк 7 дней", maxStreak >= 7],
     ["100", "100 слов выучено", words >= 100],
     ["Б", "Блиц на 25+", (state.blitzBest || 0) >= 25],
-    ["★", "Все темы открыты", TOPICS.every((_, i) => unlocked(i)) && !prefs.allOpen]
+    ["★", "Все темы начаты", TOPICS.every(t => state.lessons[t.id])]
   ];
 }
 function renderProfile() {
@@ -637,7 +651,6 @@ function renderProfile() {
     <div class="hgrid" id="hg">${TOPICS.map((t, i) => { const m = mastery(t); return `<button data-t="${i}" style="background:${heat(m)};${m ? "" : "color:var(--muted)"}">${esc(t.name)}<small>${Math.round(m * 100)}%</small></button>`; }).join("")}</div>
     <div class="sec">Настройки</div>
     <div class="card" style="display:grid;gap:10px">
-      <label style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="allOpen" ${prefs.allOpen ? "checked" : ""} style="width:20px;height:20px"> Открыть все темы сразу</label>
       <button class="link" id="reset" style="text-align:left;color:var(--cor)">Сбросить прогресс</button>
     </div>
     <p class="muted" style="font-size:12px;text-align:center">Ник и фото общие с «Формулографом». Фото и статус меняются там.</p>`;
@@ -646,7 +659,6 @@ function renderProfile() {
   });
   $("#hg").onclick = e => { const b = e.target.closest("[data-t]"); if (b) topicSheet(+b.dataset.t); };
   document.querySelectorAll(".ach i").forEach(i => i.onclick = () => toast(i.title + (i.classList.contains("on") ? " — получено" : " — ещё нет")));
-  $("#allOpen").onchange = e => { prefs.allOpen = e.target.checked; savePrefs(); };
   $("#reset").onclick = () => openSheet(`<h2>Сбросить прогресс?</h2><p class="muted">Удалятся очки, выученные слова и огонёк на этом телефоне. Ник останется.</p><div class="btns"><button class="btn gh" id="no">Отмена</button><button class="btn" id="yes" style="background:var(--cor);box-shadow:none">Сбросить</button></div>`, s => {
     s.querySelector("#no").onclick = closeSheet;
     s.querySelector("#yes").onclick = () => { state = blank(); save(); closeSheet(); render(); toast("Прогресс сброшен"); };
