@@ -311,6 +311,32 @@ button.r{width:100%;text-align:left;font:inherit;color:inherit}
 .unm{font:800 20px var(--fd)}
 .hcell{border-radius:10px;padding:8px 4px;text-align:center;font:600 12px/1.2 var(--fb);color:#fff}
 .hcell small{display:block;font-weight:500;opacity:.9}
+/* медали */
+.pins{display:flex;justify-content:center;gap:6px;margin:12px 0 2px;flex-wrap:wrap}
+.pin{width:54px;height:66px;border-radius:12px;display:grid;place-items:center}
+.pin img{width:54px;height:66px;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.18))}
+.pin.empty{border:2px dashed var(--line);color:var(--muted);font:700 22px var(--fb);background:var(--sunk)}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.mtile{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;font:600 11.5px/1.2 var(--fb);padding:6px 2px;border-radius:12px}
+.mtile:active{background:var(--sunk)}
+.mtile img{width:62px;height:77px;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.15))}
+.mtile small{display:block;font-weight:500;color:var(--muted);font-size:10.5px}
+.mtile.locked img,.msheet img.locked,.tiersrow img.locked{filter:grayscale(1) brightness(1.1);opacity:.32}
+.mtile.locked span{color:var(--muted)}
+.msheet{text-align:center}
+.msheet>img{width:150px;height:186px;object-fit:contain;display:block;margin:0 auto 6px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.2))}
+.msheet q,.newmedal q{display:block;font:italic 600 15px var(--fs);color:var(--co);margin:4px 0;quotes:"«" "»"}
+.msheet p{margin:8px 0;font-size:15px}
+.rar{display:inline-block;font:700 10.5px var(--fb);text-transform:uppercase;letter-spacing:.04em;color:#fff;background:var(--rc);border-radius:6px;padding:2px 8px;margin-bottom:4px}
+.tiersrow{display:flex;justify-content:center;gap:10px;margin:6px 0}
+.tiersrow img{width:52px;height:64px;object-fit:contain}
+.newmedal{text-align:center;padding-top:6px}
+.newmedal h2{font-size:22px;margin:2px 0}
+.nm-glow{position:relative;width:180px;height:200px;margin:0 auto;display:grid;place-items:center}
+.nm-glow::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(255,216,77,.55),transparent 65%);animation:pulse 1.6s ease-in-out infinite}
+.nm-glow img{position:relative;width:150px;height:186px;object-fit:contain;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pulse{50%{transform:scale(1.12)}}
+@keyframes pop{from{transform:scale(.3) rotate(-15deg);opacity:0}}
 /* аватарка и статус */
 .stemo{font-size:.95em;margin-left:2px}
 .avbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -368,6 +394,7 @@ button.r{width:100%;text-align:left;font:inherit;color:inherit}
 <div id="toast" class="toast" hidden></div>
 <script src="data.js"></script>
 <script src="skins.js"></script>
+<script src="medals.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

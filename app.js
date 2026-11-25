@@ -22,7 +22,7 @@ const ls = {
   set(k, v) { try { localStorage.setItem(k, v); } catch {} }
 };
 const LS_KEY = "orfograf-v1";
-const blank = () => ({ v: 1, total: 0, items: {}, days: {}, best: {}, lessons: {}, blitzBest: 0, log: [] });
+const blank = () => ({ v: 1, total: 0, items: {}, days: {}, best: {}, lessons: {}, blitzBest: 0, log: [], medals: {}, medalAt: {}, pins: [], cnt: {}, flags: {}, rank: { d: {}, w: {}, m: {} }, perfectRun: 0, maxPerfectRun: 0 });
 let state = blank();
 try { const s = JSON.parse(ls.get(LS_KEY) || "null"); if (s && s.v === 1) state = Object.assign(blank(), s); } catch {}
 const save = () => ls.set(LS_KEY, JSON.stringify(state));
@@ -96,6 +96,7 @@ function record(it, ok, combo) {
   if (ok) { s.ok++; s.b = Math.min(s.b + 1, INTERVALS.length - 1); s.due = Date.now() + INTERVALS[s.b]; }
   else { s.bad++; s.b = 0; s.due = Date.now() + INTERVALS[0]; }
   const pts = ok ? (combo >= 5 ? 9 : 6) : 0;
+  if (ok && /[ёЁ]/.test(it.kind === "stress" ? it.text : correctText(it))) { state.cnt = state.cnt || {}; state.cnt.yo = (state.cnt.yo || 0) + 1; }
   (state.log || (state.log = [])).push({ k: it.key, ok, t: Date.now() }); if (state.log.length > 400) state.log.splice(0, state.log.length - 400);
   addDay(ok, pts); save();
   return pts;
@@ -302,7 +303,13 @@ function next() { if (L.i < L.items.length - 1) { L.i++; drawQ(); } else finishL
 function finishLesson() {
   const ok = L.res.filter(Boolean).length, n = L.res.length;
   if (L.topic) { state.lessons[L.topic.id] = (state.lessons[L.topic.id] || 0) + 1; state.best[L.topic.id] = Math.max(state.best[L.topic.id] || 0, ok); }
-  save(); syncSoon();
+  if (L.topic && n >= LESSON) {
+    const perfect = ok === n, h = new Date().getHours(); state.cnt = state.cnt || {};
+    state.perfectRun = perfect ? (state.perfectRun || 0) + 1 : 0; state.maxPerfectRun = Math.max(state.maxPerfectRun || 0, state.perfectRun);
+    if (perfect && h >= 23) state.cnt.night = (state.cnt.night || 0) + 1;
+    if (perfect && h < 7) state.cnt.morning = (state.cnt.morning || 0) + 1;
+  }
+  save(); syncSoon(); setTimeout(() => checkMedals(), 300);
   const lv = lvl(), st = streak();
   const idx = L.topic ? TOPICS.indexOf(L.topic) : -1;
   const msgs = [];
@@ -394,7 +401,10 @@ async function finishBlitz() {
   B.done = true; clearTimeout(B.tm);
   const { ok, n, wrong, duel } = B;
   const best = ok > (state.blitzBest || 0); if (!duel && best) state.blitzBest = ok;
-  save(); syncSoon();
+  state.flags = state.flags || {};
+  if (ok >= 40 && wrong.length <= 2) state.flags.karl = true;
+  if (ok >= 35 && wrong.length === 0) state.flags.izhica = true;
+  save(); syncSoon(); setTimeout(() => checkMedals(), 300);
   $("#ovIn").innerHTML = `<div class="fin"><div class="muted">${duel ? "Дуэль " + esc(duel.code) : "Блиц 60 секунд"}</div><div class="score">${ok}</div>
     <h2>${ok} ${plural(ok, "верный ответ", "верных ответа", "верных ответов")} из ${n}</h2>
     ${!duel && best && ok ? `<div class="chip">Новый рекорд!</div>` : ""}
@@ -624,26 +634,6 @@ function duelResultsSheet(code) {
 }
 
 /* ---------- Профиль: фото, статус, награды ---------- */
-function achievements() {
-  const all = Object.values(state.items), words = all.filter(s => s.b >= 2).length;
-  const maxStreak = (() => {
-    let best = 0, cur = 0, prev = null;
-    for (const k of Object.keys(state.days).sort()) {
-      if (state.days[k].n < GOAL) { cur = 0; prev = null; continue; }
-      const before = dayKey(new Date(new Date(k + "T12:00").getTime() - DAY));
-      cur = prev === before ? cur + 1 : 1; prev = k; best = Math.max(best, cur);
-    }
-    return best;
-  })();
-  return [
-    ["1", "Первый урок", Object.values(state.lessons).some(Boolean)],
-    ["10", "Урок без ошибок", Object.values(state.best).some(b => b >= 10)],
-    ["7🔥", "Огонёк 7 дней", maxStreak >= 7],
-    ["100", "100 слов выучено", words >= 100],
-    ["Б", "Блиц на 25+", (state.blitzBest || 0) >= 25],
-    ["★", "Все темы начаты", TOPICS.every(t => state.lessons[t.id])]
-  ];
-}
 async function uploadPhoto(file) {
   if (!me.name) { toast("Сначала придумай ник во вкладке «Друзья»"); return; }
   const st = $("#avStatus"); if (st) st.textContent = "Загружаю…";
@@ -670,13 +660,13 @@ async function removePhoto() {
 }
 function setStatus(e) { me.status = e; saveMe(); syncSoon(); render(); }
 function renderProfile() {
-  const lv = lvl(), ach = achievements(), hasPhoto = /^photo:/.test(me.avatar || "");
+  const lv = lvl(), hasPhoto = /^photo:/.test(me.avatar || "");
   $("#view").innerHTML = `<div class="prof">${avaHTML(me.id, me.name || "Ты", myAv())}
       <div class="nm">${esc(me.name || "Без ника")} ${statusOf(myAv())}<button class="link" id="ren" style="font-size:13px">изменить</button></div>
       <div class="muted">Уровень ${lv.L} · до следующего ${lv.need - lv.cur} зн.</div>
       <div class="bar" style="max-width:280px;margin:10px auto 0"><s style="width:${Math.round(lv.cur / lv.need * 100)}%;background:var(--co)"></s></div>
-      <div class="ach">${ach.map(a => `<i class="${a[2] ? "on" : ""}" title="${esc(a[1])}">${a[0]}</i>`).join("")}</div>
-      <div class="muted" style="font-size:12px">Награды: ${ach.filter(a => a[2]).length} из ${ach.length}. Нажми на кружок, чтобы узнать за что.</div></div>
+      ${pinsHTML(state.pins || [], state.medals || {}, true)}</div>
+    ${medalsSectionHTML()}
     <div class="card" style="margin-top:16px"><h2>Аватарка</h2><p class="muted" style="margin:4px 0 0;font-size:14px">${hasPhoto ? "Стоит твоё фото." : "Пока стоит первая буква ника — загрузи фото из галереи."} Видна в рейтинге и дуэлях.</p>
       ${me.name ? `<div class="avbtns"><label class="btn" for="avFile">Загрузить фото</label><input type="file" id="avFile" accept="image/*" hidden>${hasPhoto ? `<button class="btn gh" id="avDel">Убрать фото</button>` : ""}</div><div class="muted" id="avStatus" style="font-size:13px"></div>
       <p class="muted" style="font-size:12px;margin:8px 0 0">Фото увидят все в рейтинге. Не ставь то, что не хотел бы показывать другим.</p>`
@@ -690,7 +680,7 @@ function renderProfile() {
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
-  document.querySelectorAll(".ach i").forEach(i => i.onclick = () => toast(i.title + (i.classList.contains("on") ? " — получено" : " — ещё нет")));
+  bindMedalClicks($("#view"));
   document.querySelectorAll(".emojis button").forEach(b => b.onclick = () => setStatus(b.dataset.e === me.status ? "" : b.dataset.e));
   const sr = $("#stReset"); if (sr) sr.onclick = () => setStatus("");
   const af = $("#avFile"); if (af) af.onchange = () => { if (af.files && af.files[0]) uploadPhoto(af.files[0]); };
@@ -781,7 +771,7 @@ function myProfileStats() {
   const topics = {}; for (const t of TOPICS) topics[t.id] = Math.round(mastery(t) * 100);
   return { v: 1, total: state.total, lvl: lvl().L, streak: streak(), ans: n, acc: n ? Math.round(ok / n * 100) : 0,
     words: all.filter(s => s.b >= 2).length, blitz: state.blitzBest || 0, lessons: Object.values(state.lessons).reduce((a, b) => a + b, 0),
-    topics, ach: achievements().map(a => a[2] ? 1 : 0).join(""), skin: skinNow() };
+    topics, medals: state.medals || {}, pins: (state.pins || []).slice(0, 5), skin: skinNow() };
 }
 async function syncProfile() {
   const st = myProfileStats(), js = JSON.stringify(st);
@@ -808,7 +798,6 @@ async function openUser(id) {
     const max = Math.max(GOAL, ...list.map(d => d.attempts)), H = 60, W = 22;
     const bars = list.map((d, i) => { const h = d.attempts / max * H, ho = (d.correct || 0) / max * H, X = i * W + 3;
       return `<rect x="${X}" y="${6 + H - h}" width="${W - 6}" height="${h}" rx="3" fill="var(--cor)"/><rect x="${X}" y="${6 + H - ho}" width="${W - 6}" height="${ho}" rx="3" fill="var(--mi)"/>${d.attempts ? "" : `<rect x="${X}" y="${H + 5}" width="${W - 6}" height="1.5" fill="var(--line)"/>`}<text x="${X + (W - 6) / 2}" y="${H + 20}" text-anchor="middle">${+d.day.slice(8)}</text>`; }).join("");
-    const achList = achievements();
     const heat = m => m >= 80 ? "var(--mi)" : m >= 40 ? "var(--le-d)" : m > 0 ? "var(--cor)" : "var(--line)";
     $("#ubody").innerHTML = `
       <div class="muted" style="margin:-4px 0 10px">Уровень ${s ? s.lvl : last.level || 1} · 🔥 ${s ? s.streak : last.streak || 0} ${plural(s ? s.streak : last.streak || 0, "день", "дня", "дней")} подряд${s && s.skin ? ` · оформление «${esc((SKINS.find(k => k.id === s.skin) || {}).name || "Классика")}»` : ""}</div>
@@ -817,7 +806,8 @@ async function openUser(id) {
         <div class="tile"><b>${s ? fmt(s.total) : "—"}</b><small>знаков всего</small></div>
         <div class="tile"><b>${s ? s.acc + "%" : "—"}</b><small>точность · ${s ? fmt(s.ans) : 0} ${plural(s ? s.ans : 0, "ответ", "ответа", "ответов")}</small></div>
         <div class="tile"><b>${s ? s.blitz : "—"}</b><small>рекорд блица</small></div></div>
-      ${s ? `<div class="ach" style="margin:4px 0 12px">${achList.map((a, i) => `<i class="${s.ach && s.ach[i] === "1" ? "on" : ""}" title="${esc(a[1])}">${a[0]}</i>`).join("")}</div>` : ""}
+      ${s && s.medals ? `${pinsHTML(s.pins || [], s.medals, false)}<div class="ch" style="margin-top:6px"><h2>Медали</h2><span>${Object.keys(s.medals).filter(k => MEDAL[k]).length} из ${MEDALS.length}</span></div>
+        <div class="mgrid" style="margin-bottom:12px">${MEDALS.filter(m => s.medals[m.id]).map(m => medalTile(m.id, { medals: s.medals })).join("") || `<p class="muted">Пока нет медалей</p>`}</div>` : ""}
       <div class="ch"><h2>Активность</h2><span>14 дней</span></div>
       <svg class="chart" viewBox="0 0 ${14 * W} ${H + 26}">${bars}</svg>
       ${s ? `<div class="ch" style="margin-top:14px"><h2>Темы</h2><span>${s.words} ${plural(s.words, "слово выучено", "слова выучено", "слов выучено")}</span></div>
@@ -826,7 +816,7 @@ async function openUser(id) {
       <div class="btns">${id !== me.id && me.name ? `<button class="btn le" id="uDuel">Вызвать на дуэль</button>` : ""}<button class="btn gh" id="uCl">Закрыть</button></div>`;
     $("#uCl").onclick = closeSheet;
     const du = $("#uDuel"); if (du) du.onclick = () => { closeSheet(); createDuel(); };
-    document.querySelectorAll("#ubody .ach i").forEach(i => i.onclick = () => toast(i.title + (i.classList.contains("on") ? " — получено" : " — ещё нет")));
+    bindMedalClicks($("#ubody"), id === me.id ? null : { medals: (s && s.medals) || {} });
   } catch (e) { $("#ubody").innerHTML = `<div class="err">Не загрузилось: ${esc(e.message)}</div>`; }
 }
 
@@ -858,6 +848,7 @@ document.addEventListener("keydown", e => {
 /* ---------- Старт ---------- */
 applySkin(skinNow());
 render();
+setTimeout(() => { checkMedals(); refreshRankMedals(); }, 1200);
 if (me.name) { syncScore(); if (tab === "friends") loadBoard(); if (/^photo:/.test(me.avatar || "")) loadPhotos([{ player_id: me.id, avatar: me.avatar }]).then(r => r && render()); }
 {
   const q = new URLSearchParams(location.search).get("duel") || prefs.pendingDuel;
