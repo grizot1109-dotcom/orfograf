@@ -770,7 +770,7 @@ function renderProfile() {
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 24</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 25</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
@@ -959,6 +959,24 @@ function reportSheet(it) {
 }
 
 /* ---------- Пароль, вход и резервная копия ---------- */
+/* Сервер знает очки за последние дни. Если там больше, чем в телефоне (новый телефон, вход по паролю без копии),
+   берём серверные цифры, чтобы не затереть их нулями при синхронизации. */
+async function mergeServerDays() {
+  if (!me.name) return;
+  try {
+    const rows = await api(`ru_scores?select=day,points,correct,attempts&player_id=eq.${me.id}&day=gte.${dayKey(daysAgo(2))}`);
+    let changed = false;
+    for (const r of rows || []) {
+      const d = state.days[r.day] || { n: 0, ok: 0, pts: 0 };
+      if (r.points > (d.pts || 0) || r.attempts > (d.n || 0)) {
+        const add = Math.max(0, r.points - (d.pts || 0));
+        state.days[r.day] = Object.assign(d, { n: Math.max(d.n || 0, r.attempts), ok: Math.max(d.ok || 0, r.correct), pts: Math.max(d.pts || 0, r.points) });
+        state.total += add; changed = true;
+      }
+    }
+    if (changed) { save(); render(); }
+  } catch (e) { console.warn("сверка с сервером:", e.message); }
+}
 let backupDirty = false;
 function backupData() {
   return { v: 1, at: Date.now(), state, prefs: { skin: prefs.skin, examDate: prefs.examDate, period: prefs.period, duelsDone: prefs.duelsDone },
@@ -1050,7 +1068,7 @@ document.addEventListener("keydown", e => {
 applySkin(skinNow());
 render();
 setTimeout(() => { checkMedals(); checkCosmetics(); refreshRankMedals(); }, 1200);
-if (me.name) { syncScore(); if (tab === "friends") loadBoard(); if (/^photo:/.test(me.avatar || "")) loadPhotos([{ player_id: me.id, avatar: me.avatar }]).then(r => r && render()); }
+if (me.name) { mergeServerDays().finally(() => syncScore()); if (tab === "friends") loadBoard(); if (/^photo:/.test(me.avatar || "")) loadPhotos([{ player_id: me.id, avatar: me.avatar }]).then(r => r && render()); }
 {
   const q = new URLSearchParams(location.search).get("duel") || prefs.pendingDuel;
   if (q) { delete prefs.pendingDuel; savePrefs(); history.replaceState(null, "", location.pathname); joinDuel(q); }
