@@ -81,7 +81,7 @@ const correctText = it => it.kind === "choice" ? it.pre + it.opts[0] + it.post
 /* ---------- Очки, уровень, огонёк ----------
    За верный ответ — очки по сложности темы; +3 за карточку, пришедшую на повторение вовремя;
    комбо от 5 подряд — ×1,5. Бонус за урок: 10/10 — +20, 8–9 — +10. Блиц: +2 за верный, +10 за точность 90%+. */
-const TOPIC_PTS = { stress: 5, dict: 5, zsyi: 5, prepri: 6, yo: 6, roots: 7, paro: 7, nn: 8, ne: 8, hyph: 8, commas: 12 };
+const TOPIC_PTS = { stress: 5, dict: 5, zsyi: 5, prepri: 6, yo: 6, roots: 7, paro: 7, nn: 8, ne: 8, hyph: 8, commas: 12, suff: 7, verbend: 8, soft: 5, gram: 6, dash: 8 };
 const REVIEW_BONUS = 3, BLITZ_PTS = 2;
 const basePts = it => TOPIC_PTS[it.topic.id] || 6;
 function answerPts(it, combo, wasDue) { const raw = basePts(it) + (wasDue ? REVIEW_BONUS : 0); return combo >= 5 ? Math.round(raw * 1.5) : raw; }
@@ -173,7 +173,8 @@ function ring(v, size = 48, stroke = 6, col = "#FFD84D", bg = "rgba(255,255,255,
 const LOOK = {
   stress: ["#2F45E0", "А́"], dict: ["#8B5CFF", "Аб"], prepri: ["#E0567F", "пре"], zsyi: ["#F26A1B", "з/с"],
   roots: ["#16A66B", "кос"], yo: ["#14A3B8", "ё"], nn: ["#C8502D", "нн"], ne: ["#7A5AC8", "не"],
-  hyph: ["#2E8B83", "по‑"], paro: ["#C99A06", "≈"], commas: ["#FF5A4E", ","]
+  hyph: ["#2E8B83", "по‑"], paro: ["#C99A06", "≈"], commas: ["#FF5A4E", ","],
+  suff: ["#D94F8A", "чик"], verbend: ["#1B8F7A", "ишь"], soft: ["#6A6F8C", "ъ"], gram: ["#3E7CB1", "их"], dash: ["#C67A00", "—"]
 };
 const look = t => LOOK[t.id] || ["#2F45E0", t.name[0]];
 function renderLearn() {
@@ -260,7 +261,7 @@ function drawQ() {
   let card = "", below = "";
   if (it.kind === "choice") {
     L.opts = [...it.opts].sort((a, b) => a.localeCompare(b, "ru"));
-    card = `<div class="w ${it.phrase ? "phrase" : ""}">${esc(it.pre)}<span class="q">${it.short ? "?" : "…"}</span>${esc(it.post)}</div><div class="h">${it.short ? (it.opts.some(o => o.length > 1) ? "Что пропущено?" : "Какая буква пропущена?") : "Как пишется?"}</div>`;
+    card = !it.pre.trim() && !it.post.trim() && !it.short ? `<div class="w phrase">Как правильно?</div><div class="h">Выбери верный вариант ниже</div>` : `<div class="w ${it.phrase ? "phrase" : ""}">${esc(it.pre)}<span class="q">${it.short ? "?" : "…"}</span>${esc(it.post)}</div><div class="h">${it.short ? (it.opts.some(o => o.length > 1) ? "Что пропущено?" : "Какая буква пропущена?") : "Как пишется?"}</div>`;
     below = `<div class="kbd" style="grid-template-columns:${it.short ? `repeat(${L.opts.length},1fr)` : "1fr"}">${L.opts.map((o, k) => `<button class="key ${it.short ? "" : "word"}" data-o="${k}">${esc(o)}</button>`).join("")}</div>`;
   } else if (it.kind === "stress") {
     card = `<div class="vw">${it.word.map((c, i) => it.vowels.includes(i) ? `<button class="v" data-v="${i}">${esc(c)}</button>` : `<span>${esc(c)}</span>`).join("")}</div><div class="h">Нажми на ударную гласную</div>`;
@@ -306,9 +307,10 @@ function answer(ok, btn) {
   $("#after").innerHTML = `<div class="sheetA ${ok ? "" : "bad"}">
     <div class="t">${ok ? "✓ Верно!" : "✕ Почти!"}<span>${ok ? `+${pts} зн.${wasDue ? " · повтор" : ""}${L.combo >= 5 ? " · ×1,5" : ""}` : "+0 зн."}</span></div>
     ${ok && !it.note ? "" : `<div class="ans">${ansHTML}</div>`}
-    <div class="rr">${it.note ? esc(it.note) : ok ? "Так держать." : "Карточка вернётся через 10 минут."}${!ok && it.note ? " Карточка вернётся через 10 минут." : ""}<br><button id="rl2">Теория по теме</button></div>
+    <div class="rr">${it.note ? esc(it.note) : ok ? "Так держать." : "Карточка вернётся через 10 минут."}${!ok && it.note ? " Карточка вернётся через 10 минут." : ""}<br><button id="rl2">Теория по теме</button> · <button id="rep">Сообщить об ошибке</button></div>
     <button class="btn" id="next">${last ? "Итоги" : ok ? "Дальше" : "Понятно"}</button></div>`;
   $("#rl2").onclick = () => theorySheet(it.topic, true);
+  $("#rep").onclick = () => reportSheet(it);
   $("#next").onclick = next;
   $("#next").focus({ preventScroll: true });
 }
@@ -697,7 +699,7 @@ function renderProfile() {
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 19</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 20</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
@@ -858,6 +860,28 @@ function skinCardHTML() {
         <path d="M24,40 C24,20 96,44 96,22" fill="none" stroke="${["neon"].includes(k.id) ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.12)"}" stroke-width="6" stroke-linecap="round"/>
         <circle cx="24" cy="40" r="11" fill="${k.sw[1]}"/><circle cx="96" cy="22" r="11" fill="${k.sw[2]}" stroke="${k.sw[1]}" stroke-width="2"/></svg></span>
       <span class="nm2">${k.name}<small>${k.note}</small></span></button>`).join("")}</div></div>`;
+}
+
+/* ---------- Сообщить об ошибке ---------- */
+function reportSheet(it) {
+  const R = ["Неправильный ответ", "Опечатка", "Непонятное задание", "Другое"];
+  openSheet(`<h2>Сообщить об ошибке</h2><p class="muted" style="margin:4px 0 8px">Задание: <b>${esc(correctText(it))}</b> · ${esc(it.topic.name)}</p>
+    <div class="rpr">${R.map((r, i) => `<button data-r="${i}" aria-pressed="${i === 0}">${r}</button>`).join("")}</div>
+    <textarea id="rpc" maxlength="500" rows="3" placeholder="Что не так? Например: правильно «…», потому что…"></textarea>
+    <div class="err" id="rpe"></div>
+    <div class="btns"><button class="btn" id="rps">Отправить</button><button class="btn gh" id="rpx">Отмена</button></div>`, s => {
+    let reason = R[0];
+    s.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { reason = R[+b.dataset.r]; s.querySelectorAll("[data-r]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+    s.querySelector("#rpx").onclick = closeSheet;
+    s.querySelector("#rps").onclick = async () => {
+      if (!me.name) { s.querySelector("#rpe").textContent = "Сначала придумай ник во вкладке «Друзья»."; return; }
+      const btn = s.querySelector("#rps"); btn.disabled = true; btn.textContent = "Отправляю…";
+      try {
+        await api("rpc/ru_report", { method: "POST", body: JSON.stringify({ p_id: me.id, p_secret: me.secret, p_name: me.name, p_item: it.key, p_reason: reason, p_comment: s.querySelector("#rpc").value.trim() }) });
+        closeSheet(); toast("Спасибо! Проверю и исправлю");
+      } catch (e) { btn.disabled = false; btn.textContent = "Отправить"; s.querySelector("#rpe").textContent = "Не отправилось — проверь интернет. " + e.message; }
+    };
+  });
 }
 
 /* ---------- Клавиатура ---------- */

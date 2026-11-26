@@ -122,3 +122,26 @@ begin
 end $$;
 revoke all on function public.ru_set_profile(uuid, text, text, jsonb) from public;
 grant execute on function public.ru_set_profile(uuid, text, text, jsonb) to anon, authenticated;
+
+-- Сообщения об ошибках в заданиях (кнопка «Сообщить об ошибке»). Читать может только владелец проекта.
+create table if not exists public.ru_reports (
+  id bigserial primary key,
+  player_id uuid not null references public.players(id) on delete cascade,
+  name text not null,
+  item text not null check (char_length(item) <= 300),
+  reason text not null check (char_length(reason) <= 60),
+  comment text not null default '' check (char_length(comment) <= 500),
+  created_at timestamptz not null default now()
+);
+alter table public.ru_reports enable row level security;
+revoke all on public.ru_reports from anon, authenticated;
+create or replace function public.ru_report(p_id uuid, p_secret text, p_name text, p_item text, p_reason text, p_comment text default '')
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  perform _auth_player(p_id, p_secret, p_name);
+  if (select count(*) from ru_reports where player_id = p_id and created_at > now() - interval '1 hour') >= 30 then raise exception 'too many reports'; end if;
+  insert into ru_reports (player_id, name, item, reason, comment)
+  values (p_id, btrim(p_name), left(coalesce(p_item, ''), 300), left(coalesce(p_reason, ''), 60), left(coalesce(p_comment, ''), 500));
+end $$;
+revoke all on function public.ru_report(uuid, text, text, text, text, text) from public;
+grant execute on function public.ru_report(uuid, text, text, text, text, text) to anon, authenticated;
