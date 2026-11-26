@@ -328,7 +328,7 @@ function drawQ() {
   let card = "", below = "";
   if (it.kind === "choice") {
     L.opts = [...it.opts].sort((a, b) => a.localeCompare(b, "ru"));
-    card = !it.pre.trim() && !it.post.trim() && !it.short ? `<div class="w phrase">Как правильно?</div><div class="h">Выбери верный вариант ниже</div>` : `<div class="w ${it.phrase ? "phrase" : ""}">${esc(it.pre)}<span class="q">${it.short ? "?" : "…"}</span>${esc(it.post)}</div><div class="h">${it.short ? (it.opts.some(o => o.length > 1) ? "Что пропущено?" : "Какая буква пропущена?") : "Как пишется?"}</div>`;
+    card = !it.pre.trim() && !it.post.trim() && !it.short ? `<div class="w phrase">Как правильно?</div><div class="h">Выбери верный вариант ниже</div>` : `<div class="w ${it.phrase ? "phrase" : ""} ${(it.pre + it.post).length > 70 ? "long" : ""}">${esc(it.pre)}<span class="q">${it.short ? "?" : "…"}</span>${esc(it.post)}</div><div class="h">${it.short ? (it.opts.some(o => o.length > 1) ? "Что пропущено?" : "Какая буква пропущена?") : it.opts.includes("ошибки нет") ? "Есть ли грамматическая ошибка?" : "Как пишется?"}</div>`;
     below = `<div class="kbd" style="grid-template-columns:${it.short ? `repeat(${L.opts.length},1fr)` : "1fr"}">${L.opts.map((o, k) => `<button class="key ${it.short ? "" : "word"}" data-o="${k}">${esc(o)}</button>`).join("")}</div>`;
   } else if (it.kind === "stress") {
     card = `<div class="vw">${it.word.map((c, i) => it.vowels.includes(i) ? `<button class="v" data-v="${i}">${esc(c)}</button>` : `<span>${esc(c)}</span>`).join("")}</div><div class="h">Нажми на ударную гласную</div>`;
@@ -369,11 +369,12 @@ function answer(ok, btn) {
   if (!ok) { const c = box.querySelector("#card"); c.classList.add("shake"); }
   box.querySelector(".qtop").outerHTML = topHTML();
   box.querySelector("#qx").onclick = () => quitLesson();
-  const ansHTML = it.kind === "choice" ? `${esc(it.pre)}<b>${esc(it.opts[0])}</b>${esc(it.post)}` : esc(correctText(it));
+  const longQ = it.kind === "choice" && (it.pre + it.post).length > 70;
+  const ansHTML = it.kind === "choice" ? (longQ ? `<b>${esc(it.opts[0])}</b>` : `${esc(it.pre)}<b>${esc(it.opts[0])}</b>${esc(it.post)}`) : esc(correctText(it));
   const last = L.i === L.items.length - 1;
   $("#after").innerHTML = `<div class="sheetA ${ok ? "" : "bad"}">
     <div class="t">${ok ? "✓ Верно!" : "✕ Почти!"}<span>${ok ? `+${pts} зн.${wasDue ? " · повтор" : ""}${L.combo >= 5 ? " · ×1,5" : ""}` : "+0 зн."}</span></div>
-    ${ok && !it.note ? "" : `<div class="ans">${ansHTML}</div>`}
+    ${ok && !it.note ? "" : `<div class="ans" ${it.kind === "choice" && it.opts[0].length > 50 ? 'style="font-size:16px;line-height:1.35"' : ""}>${ansHTML}</div>`}
     <div class="rr">${it.note ? esc(it.note) : ok ? "Так держать." : "Карточка вернётся через 10 минут."}${!ok && it.note ? " Карточка вернётся через 10 минут." : ""}<br><button id="rl2">Теория по теме</button> · <button id="rep">Сообщить об ошибке</button></div>
     <button class="btn" id="next">${last ? "Итоги" : ok ? "Дальше" : "Понятно"}</button></div>`;
   $("#rl2").onclick = () => theorySheet(it.topic, true);
@@ -771,7 +772,7 @@ function renderProfile() {
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 29</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 30</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
