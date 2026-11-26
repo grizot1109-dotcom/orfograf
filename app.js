@@ -352,6 +352,18 @@ function quitLesson() {
     s.querySelector("#leave").onclick = () => { closeSheet(); syncSoon(); hideOv(); };
   });
 }
+function mineHTML(it, btn) {
+  if (it.kind === "choice" && btn) { const o = L.opts[+btn.dataset.o]; return `Твой ответ: <s>${esc(it.short ? it.pre + o + it.post : o)}</s> — неверно.`; }
+  if (it.kind === "stress" && btn) { const w = [...it.word]; const v = +btn.dataset.v; w[v] = w[v].toUpperCase(); return `Твоё ударение: <s>${esc(w.join(""))}</s> — неверно.`; }
+  if (it.kind === "commas") {
+    const miss = [...it.commas].filter(g => !L.sel.has(g)).length, extra = [...L.sel].filter(g => !it.commas.has(g)).length;
+    const p = [];
+    if (miss) p.push(`пропущено запятых: ${miss}`);
+    if (extra) p.push(`лишних запятых: ${extra}`);
+    return `В твоём ответе ${p.join(", ")}. Красные запятые в предложении — пропущенные, зачёркнутые — лишние.`;
+  }
+  return "Твой ответ неверный.";
+}
 function answer(ok, btn) {
   if (L.ans !== null) return;
   const it = L.items[L.i];
@@ -374,8 +386,8 @@ function answer(ok, btn) {
   const last = L.i === L.items.length - 1;
   $("#after").innerHTML = `<div class="sheetA ${ok ? "" : "bad"}">
     <div class="t">${ok ? "✓ Верно!" : "✕ Почти!"}<span>${ok ? `+${pts} зн.${wasDue ? " · повтор" : ""}${L.combo >= 5 ? " · ×1,5" : ""}` : "+0 зн."}</span></div>
-    ${ok && !it.note ? "" : `<div class="ans" ${it.kind === "choice" && it.opts[0].length > 50 ? 'style="font-size:16px;line-height:1.35"' : ""}>${ansHTML}</div>`}
-    <div class="rr">${it.note ? esc(it.note) : ok ? "Так держать." : "Карточка вернётся через 10 минут."}${!ok && it.note ? " Карточка вернётся через 10 минут." : ""}<br><button id="rl2">Теория по теме</button> · <button id="rep">Сообщить об ошибке</button></div>
+    ${false ? "" : `<div class="ans" ${it.kind === "choice" && it.opts[0].length > 50 ? 'style="font-size:16px;line-height:1.35"' : ""}>${ansHTML}</div>`}
+    <div class="rr">${ok ? "" : `<span class="mine">${mineHTML(it, btn)}</span>`}<span class="wh">${ok ? "Почему это верно" : "Почему правильно так"}</span>${esc(it.note || "Правило — в теории по теме.")}${ok ? "" : "<br>Карточка вернётся через 10 минут."}<span class="lk"><button id="rl2">Теория по теме</button> · <button id="rep">Сообщить об ошибке</button></span></div>
     <button class="btn" id="next">${last ? "Итоги" : ok ? "Дальше" : "Понятно"}</button></div>`;
   $("#rl2").onclick = () => theorySheet(it.topic, true);
   $("#rep").onclick = () => reportSheet(it);
@@ -772,7 +784,7 @@ function renderProfile() {
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 33</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 34</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
