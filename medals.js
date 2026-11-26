@@ -17,6 +17,18 @@ function maxStreakEver() {
   }
   return Math.max(best, streak());
 }
+function topicStats(t) {
+  let n = 0, ok = 0; for (const it of t.list) { const s = state.items[it.key]; if (s) { n += s.n; ok += s.ok; } }
+  return { m: Math.round(mastery(t) * 100), acc: n ? Math.round(ok / n * 100) : 0, week: t.list.filter(it => itemState(it).b >= 4).length, total: t.list.length };
+}
+/* условия следующей ступени закладки: [название, сейчас, нужно, единица] */
+function topicReqs(t) {
+  const tr = topicTier(t), st = topicStats(t);
+  if (!tr) return { tier: "b", reqs: [["Выучено", st.m, 60, "%"]] };
+  if (tr === "b") return { tier: "s", reqs: [["Выучено", st.m, 90, "%"], ["Точность в теме", st.acc, 85, "%"]] };
+  if (tr === "s") return { tier: "g", reqs: [["Вспомнено спустя неделю", st.week, st.total, " из " + st.total]] };
+  return null;
+}
 function topicTier(t) {
   const m = mastery(t); let n = 0, ok = 0;
   for (const it of t.list) { const s = state.items[it.key]; if (s) { n += s.n; ok += s.ok; } }
@@ -217,12 +229,20 @@ function medalSheet(id, other) {
     ${m.quote && (t || !m.secret) ? `<q>${esc(m.quote)}</q>` : ""}
     <p>${esc(t && m.condOpen ? m.condOpen : m.cond)}</p>
     ${m.tiers ? `<div class="tiersrow">${["b", "s", "g"].map(x => `<img src="${medalImg(id, x)}" class="${t && TIER_RANK[t] >= TIER_RANK[x] ? "" : "locked"}" alt="${TIER_NAME[x]}">`).join("")}</div>` : ""}
-    ${mine && (!t || next) && m.progLabel ? `<div class="bar"><s style="width:${pct}%;background:var(--co)"></s></div><div class="muted" style="font-size:13px">${m.group === "topic" && topicTier(m.topic) === "s" ? `${cur} из ${need} заданий вспомнены через неделю` : `${fmt(cur)} / ${fmt(need)} ${m.progLabel}`}</div>` : ""}
+    ${mine && m.group === "topic" ? topicReqsHTML(m.topic) : mine && (!t || next) && m.progLabel ? `<div class="bar"><s style="width:${pct}%;background:var(--co)"></s></div><div class="muted" style="font-size:13px">${fmt(cur)} / ${fmt(need)} ${m.progLabel}</div>` : ""}
     ${when ? `<div class="muted" style="font-size:13px;margin-top:6px">Получено ${when}</div>` : ""}
     <div class="btns">${mine && t ? `<button class="btn ${pinned ? "gh" : "le"}" id="msPin">${pinned ? "Убрать из профиля" : "Поставить в профиль"}</button>` : ""}<button class="btn gh" id="msCl">Закрыть</button></div></div>`, s => {
     s.querySelector("#msCl").onclick = closeSheet;
     const p = s.querySelector("#msPin"); if (p) p.onclick = () => { if (togglePin(id)) closeSheet(); };
   });
+}
+function topicReqsHTML(t) {
+  const r = topicReqs(t);
+  if (!r) return `<div class="reqs"><div class="req ok">✓ Все ступени получены</div></div>`;
+  return `<div class="reqs"><div class="rq-h">До ступени «${TIER_NAME[r.tier]}»:</div>${r.reqs.map(([name, cur, need, unit]) => {
+    const done = cur >= need, pct = Math.min(100, Math.round(cur / need * 100));
+    return `<div class="req ${done ? "ok" : ""}"><div class="rq-t"><span>${done ? "✓" : "○"} ${name}</span><b>${unit === "%" ? `${cur}% из ${need}%` : `${cur}${unit}`}</b></div><div class="bar"><s style="width:${pct}%;background:${done ? "var(--mi)" : "var(--co)"}"></s></div></div>`;
+  }).join("")}</div>`;
 }
 function pickPinSheet() {
   const got = MEDALS.filter(m => state.medals?.[m.id] && !(state.pins || []).includes(m.id));

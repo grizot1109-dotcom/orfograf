@@ -288,6 +288,22 @@ h2{font:700 17px/1.2 var(--fd);margin:0}
 :root[data-skin=comics] .node .c::before{box-shadow:4px 5px 0 #111,inset 0 0 0 3px #111}
 :root[data-skin=comics] .lab b{font-family:"Unbounded",sans-serif;font-weight:800;font-size:13px;text-transform:uppercase}
 .d-comic{font-family:"Unbounded",sans-serif;font-weight:800}
+/* Брутал — как в «Формулографе» */
+:root[data-skin=brutal]{color-scheme:light;--bg:#FFD600;--paper:#FFFFFF;--sunk:#F4F4F4;--line:#000000;--ink:#000000;--muted:#444444;--co:#000000;--co-d:#000000;--co-soft:#FFF3A3;--cor:#E0261B;--cor-soft:#FFDCD8;--mi:#0A8F3C;--mi-soft:#D9F5E2;--le:#FFD600;--le-d:#000000;--pb:#000;--pbw:6px;--pw:#FFD600}
+:root[data-skin=brutal] .card,:root[data-skin=brutal] .lab,:root[data-skin=brutal] .tile,:root[data-skin=brutal] .rows,:root[data-skin=brutal] .feed,:root[data-skin=brutal] .big,:root[data-skin=brutal] .thbtn,:root[data-skin=brutal] .ctile,:root[data-skin=brutal] .skin{border:3px solid #000;border-radius:0;box-shadow:6px 6px 0 #000}
+:root[data-skin=brutal] .goal,:root[data-skin=brutal] .league{border-radius:0;border:3px solid #000;box-shadow:6px 6px 0 #000;background:#000;color:#fff}
+:root[data-skin=brutal] .btn{border-radius:0;border:3px solid #000;box-shadow:3px 3px 0 #000;background:#FFD600;color:#000}
+:root[data-skin=brutal] .btn.gh{background:#fff}
+:root[data-skin=brutal] .chip,:root[data-skin=brutal] .pseg,:root[data-skin=brutal] .pseg button,:root[data-skin=brutal] .avg,:root[data-skin=brutal] .key,:root[data-skin=brutal] .yn button{border-radius:0}
+:root[data-skin=brutal] .chip,:root[data-skin=brutal] .pseg,:root[data-skin=brutal] .avg{border:2px solid #000}
+:root[data-skin=brutal] .key{border:3px solid #000;box-shadow:3px 3px 0 #000}
+:root[data-skin=brutal] .sheet{border-radius:0;border-top:4px solid #000}
+:root[data-skin=brutal] .sheetA{border-radius:0;border-top:4px solid #000}
+:root[data-skin=brutal] .tb{border-top:3px solid #000}
+:root[data-skin=brutal] .tb button[aria-selected="true"]{color:#000;background:#FFD600}
+:root[data-skin=brutal] .node .c::before{box-shadow:5px 6px 0 #000,inset 0 0 0 4px #000}
+:root[data-skin=brutal] .lab .mb,:root[data-skin=brutal] .bar,:root[data-skin=brutal] .sbar{border-radius:0;border:2px solid #000;background:#fff}
+:root[data-skin=brutal] .bar s,:root[data-skin=brutal] .lab .mb s{border-radius:0}
 .d-news{font-family:"Old Standard TT",Georgia,serif;font-weight:700;fill:#1A1A1A}
 .d-mono{font-family:"PT Mono",ui-monospace,monospace}
 .d-neon{font-family:"Unbounded",sans-serif;font-weight:700;letter-spacing:.04em}
@@ -375,6 +391,12 @@ button.r{width:100%;text-align:left;font:inherit;color:inherit}
 .th-list b{display:block;font-size:15px}
 .th-list small{color:var(--muted);font-size:12.5px}
 .th-list .ar{margin-left:auto;font-size:22px;color:var(--muted)}
+.reqs{text-align:left;margin:10px 0 4px;display:grid;gap:8px}
+.rq-h{font:700 13px var(--fb);color:var(--muted)}
+.req .rq-t{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.req .rq-t b{white-space:nowrap}
+.req .bar{margin:4px 0 0}
+.req.ok{color:var(--mi)}
 /* медали */
 .pins{display:flex;justify-content:center;gap:6px;margin:12px 0 2px;flex-wrap:wrap}
 .pin{width:54px;height:66px;border-radius:12px;display:grid;place-items:center}

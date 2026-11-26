@@ -9,7 +9,8 @@ const SKINS = [
   { id: "neon", name: "Неон", note: "светящиеся вывески", sw: ["#0E0B14", "#FF3DA5", "#2DE2E6"] },
   { id: "metro", name: "Метро", note: "схема линий и станций", sw: ["#F4F5F7", "#D6312B", "#0078BE"] },
   { id: "chronicle", name: "Летопись", note: "буквицы и старые буквы", sw: ["#EFE3C8", "#8E1B12", "#B8862B"] },
-  { id: "comics", name: "Комикс", note: "облачка «БАМ!» и растр", sw: ["#FFF3C4", "#1E6BFF", "#FF3B30"] }
+  { id: "comics", name: "Комикс", note: "облачка «БАМ!» и растр", sw: ["#FFF3C4", "#1E6BFF", "#FF3B30"] },
+  { id: "brutal", name: "Брутал", note: "жёлтый, чёрный, без округлений", sw: ["#FFD600", "#000000", "#FFFFFF"] }
 ];
 
 const pickOf = (arr, r) => arr[Math.floor(r() * arr.length)];
@@ -207,6 +208,19 @@ Object.assign(DRAW, {
   }
 });
 
+/* ---- Брутал ---- */
+Object.assign(DRAW, {
+  bsq(x, y, s, r) { const a = r() * 30 - 15; return `<rect x="${x - s / 2}" y="${y - s / 2}" width="${s}" height="${s}" fill="${r() < .5 ? "#000" : "#fff"}" stroke="#000" stroke-width="4" transform="rotate(${a} ${x} ${y})"/>`; },
+  bring(x, y, s) { return `<circle cx="${x}" cy="${y}" r="${s * .42}" fill="none" stroke="#000" stroke-width="6"/>`; },
+  bcross(x, y, s) { const d = s * .4; return `<path d="M${x - d} ${y - d}L${x + d} ${y + d}M${x + d} ${y - d}L${x - d} ${y + d}" stroke="#000" stroke-width="7" stroke-linecap="square"/>`; },
+  barrow(x, y, s, r) { const k = r() < .5 ? 1 : -1, w = s * .7; return `<path d="M${x - w * k} ${y}H${x + w * k}M${x + (w - 12) * k} ${y - 12}L${x + w * k} ${y}L${x + (w - 12) * k} ${y + 12}" stroke="#000" stroke-width="6" fill="none" stroke-linecap="square"/>`; },
+  bword(x, y, s, r) {
+    const T = pickOf(["ЖИ-ШИ.", "ТОЧКА.", "ДА.", "ПИШИ.", "Ё!", "НН."], r), w = T.length * s * .42 + 14;
+    return `<g transform="rotate(${r() < .5 ? -4 : 4} ${x} ${y})"><rect x="${x - w / 2 + 5}" y="${y - s * .4 + 5}" width="${w}" height="${s * .8}" fill="#000"/><rect x="${x - w / 2}" y="${y - s * .4}" width="${w}" height="${s * .8}" fill="#fff" stroke="#000" stroke-width="3"/>
+      <text x="${x}" y="${y + s * .2}" font-size="${s * .52}" text-anchor="middle" font-family="Unbounded,sans-serif" font-weight="800" fill="#000">${T}</text></g>`;
+  }
+});
+
 /* Какие рисунки и сколько — для каждого оформления (freeN — штук на 10 000 px²) */
 const DECOR = {
   classic: { gap: ["letter"], free: [], freeN: 0 },
@@ -217,9 +231,10 @@ const DECOR = {
   neon: { gap: ["nword", "nheart", "narrow", "nstar", "nword"], free: ["brick"], freeN: .6 },
   metro: { gap: ["mline", "mstation", "mline", "mlogo", "mxfer", "mstation"], free: [], freeN: 0 },
   chronicle: { gap: ["dropcap", "oldletter", "blot", "quill", "vine", "oldletter"], free: ["oldletter"], freeN: .1 },
-  comics: { gap: ["burst", "bubble", "dots", "zap", "burst"], free: [], freeN: 0 }
+  comics: { gap: ["burst", "bubble", "dots", "zap", "burst"], free: [], freeN: 0 },
+  brutal: { gap: ["bsq", "bring", "bcross", "barrow", "bword", "bsq"], free: [], freeN: 0 }
 };
-const SIZE = { letter: 44, star: 28, spiral: 26, heart: 26, smile: 28, arrow: 34, word: 26, halftone: 40, headline: 22, crossword: 40, column: 36, rose: 40, gleaf: 30, gdots: 26, stamp: 40, postmark: 40, tape: 26, stampword: 26, nword: 30, nheart: 28, narrow: 34, nstar: 26, brick: 1, mline: 30, mlogo: 28, mstation: 26, mxfer: 20, dropcap: 40, oldletter: 34, blot: 30, quill: 50, vine: 40, burst: 44, bubble: 40, dots: 36, zap: 36 };
+const SIZE = { letter: 44, star: 28, spiral: 26, heart: 26, smile: 28, arrow: 34, word: 26, halftone: 40, headline: 22, crossword: 40, column: 36, rose: 40, gleaf: 30, gdots: 26, stamp: 40, postmark: 40, tape: 26, stampword: 26, nword: 30, nheart: 28, narrow: 34, nstar: 26, brick: 1, mline: 30, mlogo: 28, mstation: 26, mxfer: 20, dropcap: 40, oldletter: 34, blot: 30, quill: 50, vine: 40, burst: 44, bubble: 40, dots: 36, zap: 36, bsq: 26, bring: 30, bcross: 26, barrow: 40, bword: 30 };
 
 function decorDefs() {
   return `<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
