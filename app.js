@@ -81,7 +81,7 @@ const correctText = it => it.kind === "choice" ? it.pre + it.opts[0] + it.post
 /* ---------- Очки, уровень, огонёк ----------
    За верный ответ — очки по сложности темы; +3 за карточку, пришедшую на повторение вовремя;
    комбо от 5 подряд — ×1,5. Бонус за урок: 10/10 — +20, 8–9 — +10. Блиц: +2 за верный, +10 за точность 90%+. */
-const TOPIC_PTS = { stress: 5, dict: 5, zsyi: 5, prepri: 6, yo: 6, roots: 7, paro: 7, nn: 8, ne: 8, hyph: 8, commas: 12, suff: 7, verbend: 8, soft: 5, gram: 6, dash: 8 };
+const TOPIC_PTS = { stress: 5, dict: 5, zsyi: 5, prepri: 6, yo: 6, roots: 7, paro: 7, nn: 8, ne: 8, hyph: 8, commas: 12, suff: 7, verbend: 8, soft: 5, gram: 6, dash: 8, lex: 6, errors: 8, vowels: 5 };
 const REVIEW_BONUS = 3, BLITZ_PTS = 2;
 const basePts = it => TOPIC_PTS[it.topic.id] || 6;
 function answerPts(it, combo, wasDue) { const raw = basePts(it) + (wasDue ? REVIEW_BONUS : 0); return combo >= 5 ? Math.round(raw * 1.5) : raw; }
@@ -174,7 +174,8 @@ const LOOK = {
   stress: ["#2F45E0", "А́"], dict: ["#8B5CFF", "Аб"], prepri: ["#E0567F", "пре"], zsyi: ["#F26A1B", "з/с"],
   roots: ["#16A66B", "кос"], yo: ["#14A3B8", "ё"], nn: ["#C8502D", "нн"], ne: ["#7A5AC8", "не"],
   hyph: ["#2E8B83", "по‑"], paro: ["#C99A06", "≈"], commas: ["#FF5A4E", ","],
-  suff: ["#D94F8A", "чик"], verbend: ["#1B8F7A", "ишь"], soft: ["#6A6F8C", "ъ"], gram: ["#3E7CB1", "их"], dash: ["#C67A00", "—"]
+  suff: ["#D94F8A", "чик"], verbend: ["#1B8F7A", "ишь"], soft: ["#6A6F8C", "ъ"], gram: ["#3E7CB1", "их"], dash: ["#C67A00", "—"],
+  lex: ["#7D5BA6", "≠"], errors: ["#B03A2E", "!"], vowels: ["#2D9CDB", "о́"]
 };
 const look = t => LOOK[t.id] || ["#2F45E0", t.name[0]];
 function renderLearn() {
@@ -327,7 +328,7 @@ function drawQ() {
   let card = "", below = "";
   if (it.kind === "choice") {
     L.opts = [...it.opts].sort((a, b) => a.localeCompare(b, "ru"));
-    card = !it.pre.trim() && !it.post.trim() && !it.short ? `<div class="w phrase">Как правильно?</div><div class="h">Выбери верный вариант ниже</div>` : `<div class="w ${it.phrase ? "phrase" : ""}">${esc(it.pre)}<span class="q">${it.short ? "?" : "…"}</span>${esc(it.post)}</div><div class="h">${it.short ? (it.opts.some(o => o.length > 1) ? "Что пропущено?" : "Какая буква пропущена?") : "Как пишется?"}</div>`;
+    card = !it.pre.trim() && !it.post.trim() && !it.short ? `<div class="w phrase">Как правильно?</div><div class="h">Выбери верный вариант ниже</div>` : `<div class="w ${it.phrase ? "phrase" : ""}">${esc(it.pre)}<span class="q">${it.short ? "?" : "…"}</span>${esc(it.post)}</div><div class="h">${it.short ? (it.opts.some(o => o.length > 1) ? "Что пропущено?" : "Какая буква пропущена?") : it.topic.id === "lex" ? "Какое слово лишнее?" : "Как пишется?"}</div>`;
     below = `<div class="kbd" style="grid-template-columns:${it.short ? `repeat(${L.opts.length},1fr)` : "1fr"}">${L.opts.map((o, k) => `<button class="key ${it.short ? "" : "word"}" data-o="${k}">${esc(o)}</button>`).join("")}</div>`;
   } else if (it.kind === "stress") {
     card = `<div class="vw">${it.word.map((c, i) => it.vowels.includes(i) ? `<button class="v" data-v="${i}">${esc(c)}</button>` : `<span>${esc(c)}</span>`).join("")}</div><div class="h">Нажми на ударную гласную</div>`;
@@ -770,7 +771,7 @@ function renderProfile() {
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 25</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 26</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
