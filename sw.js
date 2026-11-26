@@ -1,5 +1,5 @@
 // Офлайн-режим: сначала сеть (чтобы сразу видеть обновления), без сети — из кэша.
-const CACHE = "orfograf-v21";
+const CACHE = "orfograf-v22";
 const CORE = ["./", "index.html", "app.js", "data.js", "skins.js", "medals.js", "cosmetics.js", "theory.js", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE))); self.skipWaiting(); });
 self.addEventListener("activate", e => {

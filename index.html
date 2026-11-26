@@ -378,6 +378,8 @@ button.r{width:100%;text-align:left;font:inherit;color:inherit}
 .ex-it:disabled{opacity:1;cursor:default}
 :root[data-skin=brutal] .exam{border:3px solid #000;border-radius:0;box-shadow:6px 6px 0 #000}
 :root[data-skin=brutal] .ex-days{border-radius:0;border:3px solid #000}
+.utime{font-size:13.5px;color:var(--muted);margin:-4px 0 12px}
+.utime b{color:var(--ink)}
 /* теория */
 .thbtn{display:flex;align-items:center;gap:12px;width:100%;margin:12px 0 6px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:12px 14px;text-align:left;box-shadow:0 3px 0 var(--line)}
 .thbtn span{font-size:24px}
@@ -457,7 +459,7 @@ button.r{width:100%;text-align:left;font:inherit;color:inherit}
 /* статистика */
 .stiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
 .stiles .tile{padding:14px 10px}
-.stiles .tile b{font-size:24px}
+.stiles .tile b{font-size:clamp(17px,5.6vw,24px);white-space:nowrap}
 .ch{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .ch span{font-size:12.5px;color:var(--muted)}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:6px}
@@ -502,11 +504,11 @@ button.r{width:100%;text-align:left;font:inherit;color:inherit}
 <div id="split" hidden></div>
 <div id="shade" class="shade" hidden><div class="sheet" id="sheet"></div></div>
 <div id="toast" class="toast" hidden></div>
-<script src="data.js?v=21"></script>
-<script src="skins.js?v=21"></script>
-<script src="medals.js?v=21"></script>
-<script src="cosmetics.js?v=21"></script>
-<script src="theory.js?v=21"></script>
-<script src="app.js?v=21"></script>
+<script src="data.js?v=22"></script>
+<script src="skins.js?v=22"></script>
+<script src="medals.js?v=22"></script>
+<script src="cosmetics.js?v=22"></script>
+<script src="theory.js?v=22"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>

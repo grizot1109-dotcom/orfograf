@@ -234,6 +234,27 @@ function topicSheet(i) {
 }
 function ruleSheet(t) { openSheet(`<h2>${esc(t.name)}</h2><div class="muted">${esc(t.ege)}</div><div class="rule">${t.rule}</div><div class="btns"><button class="btn gh" id="cl">Понятно</button></div>`, s => s.querySelector("#cl").onclick = closeSheet); }
 
+/* ---------- Время в приложении ----------
+   Считаем только активное время: экран открыт и было касание или нажатие за последние 90 секунд. */
+let lastAct = Date.now(), lastTick = Date.now(), unsavedSec = 0;
+["pointerdown", "keydown", "touchstart", "scroll"].forEach(ev => document.addEventListener(ev, () => { lastAct = Date.now(); }, { passive: true, capture: true }));
+setInterval(() => {
+  const now = Date.now(), dt = Math.min(now - lastTick, 15000); lastTick = now;
+  if (document.visibilityState !== "visible" || now - lastAct > 90000) return;
+  const k = dayKey(), d = state.days[k] || (state.days[k] = { n: 0, ok: 0, pts: 0 });
+  d.sec = (d.sec || 0) + dt / 1000; unsavedSec += dt / 1000;
+  if (unsavedSec >= 30) { unsavedSec = 0; save(); }
+}, 5000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") save(); else lastTick = Date.now(); });
+const secToday = () => Math.round(today().sec || 0);
+const secTotal = () => Math.round(Object.values(state.days).reduce((a, d) => a + (d.sec || 0), 0));
+const secWeek = () => { let t = 0; for (let i = 0; i < 7; i++) t += state.days[dayKey(daysAgo(i))]?.sec || 0; return Math.round(t); };
+function fmtDur(sec) {
+  const m = Math.floor((sec || 0) / 60), h = Math.floor(m / 60), mm = m % 60;
+  if (h === 0) return `${m} мин`;
+  return mm ? `${h} ч ${mm} мин` : `${h} ч`;
+}
+
 /* ---------- Отсчёт до ЕГЭ и план на сегодня ---------- */
 const EXAM_DEFAULT = "2027-06-04"; // проект расписания ЕГЭ-2027: русский язык — 4 июня
 const PLAN_LESSONS = 2;
@@ -745,7 +766,7 @@ function renderProfile() {
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 21</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 22</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
@@ -772,7 +793,9 @@ function renderStats() {
     <div class="tile"><b>${fmt(tot)}</b><small>${plural(tot, "ответ", "ответа", "ответов")} всего</small></div>
     <div class="tile"><b>${tot ? Math.round(ok / tot * 100) + "%" : "—"}</b><small>точность</small></div>
     <div class="tile"><b>${st}</b><small>${plural(st, "день", "дня", "дней")} подряд</small></div>
-    <div class="tile"><b>${seen}<span class="muted" style="font-size:12px"> / ${totalItems}</span></b><small>заданий встречалось</small></div></div>`;
+    <div class="tile"><b>${seen}<span class="muted" style="font-size:12px"> / ${totalItems}</span></b><small>заданий встречалось</small></div>
+    <div class="tile"><b>${fmtDur(secToday())}</b><small>сегодня в приложении</small></div>
+    <div class="tile"><b>${fmtDur(secTotal())}</b><small>всего · за неделю ${fmtDur(secWeek())}</small></div></div>`;
   if (!tot) {
     $("#view").innerHTML = headerHTML(true) + tiles + `<div class="card"><h2>Здесь появится статистика</h2><p class="muted" style="margin:6px 0 0">Пройди пару уроков на вкладке «Учиться». Тут будет видно точность по темам, слова, где ты чаще ошибаешься, и активность по дням.</p>
       <div class="btns"><button class="btn" id="goL">Начать урок</button></div></div>`;
@@ -840,7 +863,7 @@ function myProfileStats() {
   const topics = {}; for (const t of TOPICS) topics[t.id] = Math.round(mastery(t) * 100);
   return { v: 1, total: state.total, lvl: lvl().L, streak: streak(), ans: n, acc: n ? Math.round(ok / n * 100) : 0,
     words: all.filter(s => s.b >= 2).length, blitz: state.blitzBest || 0, lessons: Object.values(state.lessons).reduce((a, b) => a + b, 0),
-    topics, medals: Object.fromEntries((state.pins || []).slice(0, 5).filter(id => (state.medals || {})[id]).map(id => [id, state.medals[id]])), pins: (state.pins || []).slice(0, 5), skin: skinNow(), frame: myFrame(), bg: myBg() };
+    time: { today: secToday(), week: secWeek(), total: secTotal(), day: dayKey() }, topics, medals: Object.fromEntries((state.pins || []).slice(0, 5).filter(id => (state.medals || {})[id]).map(id => [id, state.medals[id]])), pins: (state.pins || []).slice(0, 5), skin: skinNow(), frame: myFrame(), bg: myBg() };
 }
 async function syncProfile() {
   const st = myProfileStats(), js = JSON.stringify(st);
@@ -872,6 +895,7 @@ async function openUser(id) {
     const heat = m => m >= 80 ? "var(--mi)" : m >= 40 ? "var(--le-d)" : m > 0 ? "var(--cor)" : "var(--sunk)";
     $("#ubody").innerHTML = `
       <div class="muted" style="margin:-4px 0 10px">Уровень ${s ? s.lvl : last.level || 1} · 🔥 ${s ? s.streak : last.streak || 0} ${plural(s ? s.streak : last.streak || 0, "день", "дня", "дней")} подряд${s && s.skin ? ` · оформление «${esc((SKINS.find(k => k.id === s.skin) || {}).name || "Классика")}»` : ""}</div>
+      ${s && s.time ? `<div class="utime">⏱ Сегодня <b>${fmtDur(s.time.day === dayKey() ? s.time.today : 0)}</b> · за неделю <b>${fmtDur(s.time.week)}</b> · всего <b>${fmtDur(s.time.total)}</b></div>` : ""}
       <div class="stiles">
         <div class="tile"><b>${fmt(week)}</b><small>знаков за неделю</small></div>
         <div class="tile"><b>${s ? fmt(s.total) : "—"}</b><small>знаков всего</small></div>
