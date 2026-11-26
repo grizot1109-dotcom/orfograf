@@ -151,3 +151,6 @@ alter table public.ru_scores drop constraint if exists ru_scores_attempts_check;
 alter table public.ru_scores add constraint ru_scores_attempts_check check (attempts between 0 and 20000);
 alter table public.ru_scores drop constraint if exists ru_scores_points_check;
 alter table public.ru_scores add constraint ru_scores_points_check check (points between 0 and 600000);
+
+-- Вход по паролю и резервная копия прогресса (пароли — bcrypt через pgcrypto; после 10 ошибок вход блокируется на 15 минут)
+-- Полный текст функций: ru_set_password, ru_login, ru_has_password, ru_save_backup, ru_load_backup — см. миграции orfograf_login_and_backup и orfograf_login_lockout_fix в Supabase.

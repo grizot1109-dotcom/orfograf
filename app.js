@@ -245,7 +245,7 @@ setInterval(() => {
   d.sec = (d.sec || 0) + dt / 1000; unsavedSec += dt / 1000;
   if (unsavedSec >= 30) { unsavedSec = 0; save(); }
 }, 5000);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") save(); else lastTick = Date.now(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { save(); if (backupDirty) backupMaybe(true).catch(() => {}); } else lastTick = Date.now(); });
 const secToday = () => Math.round(today().sec || 0);
 const secTotal = () => Math.round(Object.values(state.days).reduce((a, d) => a + (d.sec || 0), 0));
 const secWeek = () => { let t = 0; for (let i = 0; i < 7; i++) t += state.days[dayKey(daysAgo(i))]?.sec || 0; return Math.round(t); };
@@ -393,7 +393,7 @@ function finishLesson() {
     if (perfect && h >= 23) state.cnt.night = (state.cnt.night || 0) + 1;
     if (perfect && h < 7) state.cnt.morning = (state.cnt.morning || 0) + 1;
   }
-  save(); syncSoon(); setTimeout(() => { checkMedals(); checkCosmetics(); }, 300);
+  save(); backupDirty = true; syncSoon(); setTimeout(() => { checkMedals(); checkCosmetics(); }, 300);
   const lv = lvl(), st = streak();
   const idx = L.topic ? TOPICS.indexOf(L.topic) : -1;
   const msgs = [];
@@ -577,6 +577,7 @@ function syncScore() {
         p_points: d ? d.pts : 0, p_correct: d ? d.ok : 0, p_attempts: d ? d.n : 0, p_streak: st, p_level: L, p_avatar: myAv() }) });
     }
     lastSeen.set(me.id, Date.now());
+    await backupMaybe().catch(e => console.warn("копия:", e.message));
     await syncProfile().catch(e => console.warn("профиль:", e.message));
   }).catch(e => console.warn("рейтинг:", e.message));
   return syncing;
@@ -641,8 +642,10 @@ function renderFriends() {
   const v = $("#view");
   if (!me.name) {
     v.innerHTML = headerHTML() + `<div class="card"><h2>Придумай ник</h2><p class="muted" style="margin:6px 0 0">Под ним тебя увидят друзья в рейтинге. Если ты уже играешь в «Формулограф» на этом телефоне, ник подтянется оттуда.</p>
-      <form class="field" id="nickF"><input id="nick" maxlength="16" placeholder="Например, Грамотей" autocomplete="off"><button class="btn">Сохранить</button></form><div class="err" id="nickErr"></div></div>`;
+      <form class="field" id="nickF"><input id="nick" maxlength="16" placeholder="Например, Грамотей" autocomplete="off"><button class="btn">Сохранить</button></form><div class="err" id="nickErr"></div>
+      <p class="muted" style="margin:14px 0 0;font-size:14px">Уже играл и приложение сбросилось? <button class="link" id="goLogin">Войти по паролю</button></p></div>`;
     $("#nickF").onsubmit = e => { e.preventDefault(); setNick($("#nick").value, $("#nickErr")); };
+    $("#goLogin").onclick = loginSheet;
     return;
   }
   const r = ranking(), ends = (() => { const e = weekStart(); e.setDate(e.getDate() + 7); e.setHours(0, 0, 0, 0); const h = Math.max(0, Math.round((e - Date.now()) / 36e5)); return h >= 24 ? `${Math.floor(h / 24)} д ${h % 24} ч` : `${h} ч`; })();
@@ -763,14 +766,15 @@ function renderProfile() {
     <div class="card"><h2>Статус</h2><p class="muted" style="margin:4px 0 0;font-size:14px">Стоит рядом с ником.</p>
       <div class="emojis">${AV_EMOJI.map(e => `<button data-e="${e}" aria-pressed="${e === me.status}" aria-label="${e}">${e}</button>`).join("")}</div>
       ${me.status ? `<button class="link" id="stReset">Убрать статус</button>` : ""}</div>
+    ${accountCardHTML()}
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 23</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 24</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
-  bindMedalClicks($("#view")); bindCosmetics($("#view"));
+  bindMedalClicks($("#view")); bindCosmetics($("#view")); bindAccountCard();
   document.querySelectorAll(".emojis button").forEach(b => b.onclick = () => setStatus(b.dataset.e === me.status ? "" : b.dataset.e));
   const sr = $("#stReset"); if (sr) sr.onclick = () => setStatus("");
   const af = $("#avFile"); if (af) af.onchange = () => { if (af.files && af.files[0]) uploadPhoto(af.files[0]); };
@@ -950,6 +954,87 @@ function reportSheet(it) {
         await api("rpc/ru_report", { method: "POST", body: JSON.stringify({ p_id: me.id, p_secret: me.secret, p_name: me.name, p_item: it.key, p_reason: reason, p_comment: s.querySelector("#rpc").value.trim() }) });
         closeSheet(); toast("Спасибо! Проверю и исправлю");
       } catch (e) { btn.disabled = false; btn.textContent = "Отправить"; s.querySelector("#rpe").textContent = "Не отправилось — проверь интернет. " + e.message; }
+    };
+  });
+}
+
+/* ---------- Пароль, вход и резервная копия ---------- */
+let backupDirty = false;
+function backupData() {
+  return { v: 1, at: Date.now(), state, prefs: { skin: prefs.skin, examDate: prefs.examDate, period: prefs.period, duelsDone: prefs.duelsDone },
+    me: { avatar: me.avatar || "", status: me.status || "" } };
+}
+async function backupMaybe(force) {
+  if (!me.name) return;
+  const last = prefs.backupAt || 0, now = Date.now();
+  if (!force && !(backupDirty && now - last > 60e3) && now - last < 5 * 60e3) return;
+  await api("rpc/ru_save_backup", { method: "POST", body: JSON.stringify({ p_id: me.id, p_secret: me.secret, p_name: me.name, p_data: backupData() }) });
+  backupDirty = false; prefs.backupAt = now; savePrefs();
+}
+const agoText = t => { if (!t) return "ещё не было"; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "только что" : m < 60 ? `${m} мин назад` : m < 1440 ? `${Math.round(m / 60)} ч назад` : new Date(t).toLocaleDateString("ru-RU"); };
+function accountCardHTML() {
+  if (!me.name) return "";
+  const login = prefs.login;
+  return `<div class="card" id="accCard"><h2>Вход и резервная копия</h2>
+    ${login ? `<p class="muted" style="margin:4px 0 0;font-size:14px">Пароль задан. Если приложение сбросится или сменишь телефон — нажми «Войти по паролю» и введи логин <b>${esc(login)}</b>. Прогресс восстановится из копии.</p>`
+      : `<p class="muted" style="margin:4px 0 0;font-size:14px">Задай пароль, чтобы вернуть аккаунт и весь прогресс, если приложение сбросится или ты сменишь телефон. Логином будет твой ник.</p>`}
+    <div class="muted" style="font-size:13px;margin-top:6px">Копия прогресса на сервере: ${agoText(prefs.backupAt)}</div>
+    <div class="btns"><button class="btn ${login ? "gh" : ""}" id="setPass">${login ? "Сменить пароль" : "Задать пароль"}</button><button class="btn gh" id="goLogin2">Войти в другой аккаунт</button></div></div>`;
+}
+function bindAccountCard() {
+  const sp = $("#setPass"); if (sp) sp.onclick = passwordSheet;
+  const gl = $("#goLogin2"); if (gl) gl.onclick = loginSheet;
+  if (me.name && prefs.login === undefined) api("rpc/ru_has_password", { method: "POST", body: JSON.stringify({ p_id: me.id, p_secret: me.secret, p_name: me.name }) })
+    .then(l => { prefs.login = l || ""; savePrefs(); if (tab === "profile") render(); }).catch(() => {});
+}
+function passwordSheet() {
+  openSheet(`<h2>${prefs.login ? "Сменить пароль" : "Задать пароль"}</h2><p class="muted" style="margin:4px 0 10px">Логин: <b>${esc(me.name)}</b> (твой ник, без учёта больших и маленьких букв). Пароль — от 6 символов. Запомни или запиши его.</p>
+    <form id="pf"><input type="password" id="p1" placeholder="Пароль" autocomplete="new-password" class="inp"><input type="password" id="p2" placeholder="Ещё раз" autocomplete="new-password" class="inp">
+    <div class="err" id="pe"></div><div class="btns"><button class="btn" id="psave">Сохранить</button><button class="btn gh" type="button" id="pcl">Отмена</button></div></form>`, s => {
+    s.querySelector("#pcl").onclick = closeSheet;
+    s.querySelector("#pf").onsubmit = async e => {
+      e.preventDefault();
+      const a = s.querySelector("#p1").value, b = s.querySelector("#p2").value, err = s.querySelector("#pe");
+      if (a.length < 6) return err.textContent = "Пароль — минимум 6 символов";
+      if (a !== b) return err.textContent = "Пароли не совпадают";
+      const btn = s.querySelector("#psave"); btn.disabled = true; btn.textContent = "Сохраняю…";
+      try {
+        const l = await api("rpc/ru_set_password", { method: "POST", body: JSON.stringify({ p_id: me.id, p_secret: me.secret, p_name: me.name, p_password: a }) });
+        prefs.login = l; savePrefs(); await backupMaybe(true);
+        closeSheet(); render(); toast("Пароль сохранён, копия прогресса сделана");
+      } catch (e2) {
+        btn.disabled = false; btn.textContent = "Сохранить";
+        err.textContent = /login taken/.test(e2.message) ? "Такой логин уже занят другим игроком — смени ник в профиле и попробуй снова" : "Не получилось: " + e2.message;
+      }
+    };
+  });
+}
+function loginSheet() {
+  const hasLocal = Object.values(state.items).some(x => x.n);
+  openSheet(`<h2>Войти по паролю</h2><p class="muted" style="margin:4px 0 10px">Введи ник и пароль, которые задавал в профиле.${hasLocal ? " <b>Прогресс на этом телефоне заменится прогрессом из аккаунта.</b>" : ""}</p>
+    <form id="lf"><input id="ll" placeholder="Ник" autocomplete="username" class="inp" maxlength="20"><input type="password" id="lp" placeholder="Пароль" autocomplete="current-password" class="inp">
+    <div class="err" id="le"></div><div class="btns"><button class="btn" id="lgo">Войти</button><button class="btn gh" type="button" id="lcl">Отмена</button></div></form>`, s => {
+    s.querySelector("#lcl").onclick = closeSheet;
+    s.querySelector("#lf").onsubmit = async e => {
+      e.preventDefault();
+      const err = s.querySelector("#le"), btn = s.querySelector("#lgo");
+      btn.disabled = true; btn.textContent = "Вхожу…"; err.textContent = "";
+      try {
+        const acc = await api("rpc/ru_login", { method: "POST", body: JSON.stringify({ p_login: s.querySelector("#ll").value, p_password: s.querySelector("#lp").value }) });
+        if (acc && acc.error === "locked") throw new Error("locked");
+        if (!acc || !acc.id) throw new Error("wrong login or password");
+        const backup = await api("rpc/ru_load_backup", { method: "POST", body: JSON.stringify({ p_id: acc.id, p_secret: acc.secret }) });
+        const nm = { id: acc.id, secret: acc.secret, name: acc.name };
+        if (backup && backup.me) { nm.avatar = backup.me.avatar; nm.status = backup.me.status; }
+        ls.set(ME_KEY, JSON.stringify(nm));
+        if (backup && backup.state && backup.state.v === 1) ls.set(LS_KEY, JSON.stringify(backup.state)); else ls.set(LS_KEY, JSON.stringify(blank()));
+        const np = Object.assign({}, prefs, (backup && backup.prefs) || {}, { login: (s.querySelector("#ll").value || "").trim().toLowerCase(), backupAt: backup && backup.at || 0, rankAt: "" });
+        ls.set(LS_KEY + "-prefs", JSON.stringify(np));
+        location.reload();
+      } catch (e2) {
+        btn.disabled = false; btn.textContent = "Войти";
+        err.textContent = /locked/.test(e2.message) ? "Слишком много попыток. Подожди 15 минут." : /wrong login or password/.test(e2.message) ? "Неверный ник или пароль" : "Не получилось войти: " + e2.message;
+      }
     };
   });
 }
