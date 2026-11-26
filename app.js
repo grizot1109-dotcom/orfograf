@@ -328,7 +328,7 @@ function drawQ() {
   let card = "", below = "";
   if (it.kind === "choice") {
     L.opts = [...it.opts].sort((a, b) => a.localeCompare(b, "ru"));
-    card = !it.pre.trim() && !it.post.trim() && !it.short ? `<div class="w phrase">Как правильно?</div><div class="h">Выбери верный вариант ниже</div>` : `<div class="w ${it.phrase ? "phrase" : ""}">${esc(it.pre)}<span class="q">${it.short ? "?" : "…"}</span>${esc(it.post)}</div><div class="h">${it.short ? (it.opts.some(o => o.length > 1) ? "Что пропущено?" : "Какая буква пропущена?") : it.topic.id === "lex" ? "Какое слово лишнее?" : "Как пишется?"}</div>`;
+    card = !it.pre.trim() && !it.post.trim() && !it.short ? `<div class="w phrase">Как правильно?</div><div class="h">Выбери верный вариант ниже</div>` : `<div class="w ${it.phrase ? "phrase" : ""}">${esc(it.pre)}<span class="q">${it.short ? "?" : "…"}</span>${esc(it.post)}</div><div class="h">${it.short ? (it.opts.some(o => o.length > 1) ? "Что пропущено?" : "Какая буква пропущена?") : "Как пишется?"}</div>`;
     below = `<div class="kbd" style="grid-template-columns:${it.short ? `repeat(${L.opts.length},1fr)` : "1fr"}">${L.opts.map((o, k) => `<button class="key ${it.short ? "" : "word"}" data-o="${k}">${esc(o)}</button>`).join("")}</div>`;
   } else if (it.kind === "stress") {
     card = `<div class="vw">${it.word.map((c, i) => it.vowels.includes(i) ? `<button class="v" data-v="${i}">${esc(c)}</button>` : `<span>${esc(c)}</span>`).join("")}</div><div class="h">Нажми на ударную гласную</div>`;
@@ -771,7 +771,7 @@ function renderProfile() {
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 26</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 27</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
