@@ -359,6 +359,25 @@ button.r{width:100%;text-align:left;font:inherit;color:inherit}
 .bgpv svg{width:100%;height:100%}
 .ptsinfo{margin:10px 0 2px;font:600 13px var(--fb);color:var(--le-d);background:color-mix(in srgb,var(--le) 22%,var(--paper));border-radius:10px;padding:6px 10px;display:inline-block}
 .lab .tp{font:inherit;font-weight:700;color:var(--le-d)}
+/* отсчёт до ЕГЭ */
+.exam{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:14px;margin:10px 0 4px}
+.ex-top{display:flex;gap:12px;align-items:center}
+.ex-days{flex:none;width:74px;height:74px;border-radius:18px;background:var(--le);color:#141733;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.ex-days b{font:800 28px var(--fd)}
+.ex-days span{font:700 12px var(--fb);margin-top:3px}
+.ex-t b{display:block;font:700 16px var(--fd)}
+.ex-t small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.ex-ch{color:var(--co);font-weight:600;font-size:12.5px;padding:0}
+.ex-h{font:700 13px var(--fb);color:var(--muted);margin:12px 0 6px}
+.ex-it{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 4px;border-top:1px solid var(--line);font-size:14px}
+.ex-it i{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;color:#fff}
+.ex-it.ok i{background:var(--mi);border-color:var(--mi)}
+.ex-it.ok span{color:var(--muted);text-decoration:line-through}
+.ex-it span{flex:1}
+.ex-it em{font-style:normal;font-size:20px;color:var(--muted)}
+.ex-it:disabled{opacity:1;cursor:default}
+:root[data-skin=brutal] .exam{border:3px solid #000;border-radius:0;box-shadow:6px 6px 0 #000}
+:root[data-skin=brutal] .ex-days{border-radius:0;border:3px solid #000}
 /* теория */
 .thbtn{display:flex;align-items:center;gap:12px;width:100%;margin:12px 0 6px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:12px 14px;text-align:left;box-shadow:0 3px 0 var(--line)}
 .thbtn span{font-size:24px}
@@ -483,11 +502,11 @@ button.r{width:100%;text-align:left;font:inherit;color:inherit}
 <div id="split" hidden></div>
 <div id="shade" class="shade" hidden><div class="sheet" id="sheet"></div></div>
 <div id="toast" class="toast" hidden></div>
-<script src="data.js?v=20"></script>
-<script src="skins.js?v=20"></script>
-<script src="medals.js?v=20"></script>
-<script src="cosmetics.js?v=20"></script>
-<script src="theory.js?v=20"></script>
-<script src="app.js?v=20"></script>
+<script src="data.js?v=21"></script>
+<script src="skins.js?v=21"></script>
+<script src="medals.js?v=21"></script>
+<script src="cosmetics.js?v=21"></script>
+<script src="theory.js?v=21"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

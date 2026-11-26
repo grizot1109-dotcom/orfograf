@@ -197,6 +197,7 @@ function renderLearn() {
   }).join("");
   $("#view").innerHTML = headerHTML(true) + `
     <div class="goal">${ring(d.n / GOAL)}<div><b>Цель дня ${Math.min(d.n, GOAL)} / ${GOAL}</b><small>${left ? `Ещё ${left} ${plural(left, "задание", "задания", "заданий")} — и огонёк горит` : "Цель выполнена, огонёк горит!"}</small></div></div>
+    ${examCardHTML()}
     <div class="route"><div><h1>Маршрут</h1><span class="muted">${TOPICS.length} тем · ${total} заданий · все открыты</span></div><span class="avg">${avg}%</span></div>
     <button class="thbtn" id="thAll"><span>📖</span><span class="tx"><b>Теория</b><small>правила, таблицы, исключения по всем темам</small></span><i>›</i></button>
     <div class="map" id="map" style="height:${H}px"><svg class="deco" id="deco" aria-hidden="true"></svg><svg class="path" id="mapPath"></svg>${nodes}
@@ -216,6 +217,7 @@ function renderLearn() {
   $("#mapPath").setAttribute("viewBox", `0 0 ${W} ${H}`);
   $("#mapPath").innerHTML = `<path d="${p}" class="pb"/><path d="${p}" class="pw"/>${done}`;
   $("#thAll").onclick = theoryListSheet;
+  bindExamCard();
   map.onclick = e => { const b = e.target.closest("[data-topic]"); if (b) topicSheet(+b.dataset.topic); };
 }
 function topicSheet(i) {
@@ -231,6 +233,49 @@ function topicSheet(i) {
   });
 }
 function ruleSheet(t) { openSheet(`<h2>${esc(t.name)}</h2><div class="muted">${esc(t.ege)}</div><div class="rule">${t.rule}</div><div class="btns"><button class="btn gh" id="cl">Понятно</button></div>`, s => s.querySelector("#cl").onclick = closeSheet); }
+
+/* ---------- Отсчёт до ЕГЭ и план на сегодня ---------- */
+const EXAM_DEFAULT = "2027-06-04"; // проект расписания ЕГЭ-2027: русский язык — 4 июня
+const PLAN_LESSONS = 2;
+function examDate() { return /^\d{4}-\d{2}-\d{2}$/.test(prefs.examDate || "") ? prefs.examDate : EXAM_DEFAULT; }
+function daysToExam() { const e = new Date(examDate() + "T09:00"), t = new Date(dayKey() + "T09:00"); return Math.round((e - t) / DAY); }
+function weakestTopic() {
+  // сначала начатые, но слабо выученные; если всё ровно — первая непройденная
+  const sc = TOPICS.map(t => ({ t, m: mastery(t), seen: t.list.some(it => itemState(it).n > 0) }));
+  const started = sc.filter(x => x.seen && x.m < .8).sort((a, b) => a.m - b.m);
+  if (started.length) return started[0].t;
+  const fresh = sc.find(x => !x.seen); return (fresh || sc.sort((a, b) => a.m - b.m)[0]).t;
+}
+function examCardHTML() {
+  const left = daysToExam(), d = today(), due = dueAll().length, wt = weakestTopic();
+  const learned = Object.values(state.items).filter(s => s.b >= 2).length, rest = Math.max(0, ITEMS.size - learned);
+  const date = new Date(examDate() + "T12:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  if (left < 0) return `<div class="exam"><div class="ex-top"><div><b>ЕГЭ по русскому прошёл</b><small>${date}</small></div><button class="ex-ch" id="exDate">изменить дату</button></div></div>`;
+  const pace = left > 0 ? Math.ceil(rest / left) : rest;
+  const les = d.les || 0;
+  const items = [
+    [due === 0, due ? `Повторить ${due} ${plural(due, "карточку", "карточки", "карточек")}` : (Object.values(state.items).some(x => x.n) ? "Повторения на сегодня сделаны" : "Повторять сегодня нечего"), due ? "rev" : ""],
+    [les >= PLAN_LESSONS, `${PLAN_LESSONS} ${plural(PLAN_LESSONS, "урок", "урока", "уроков")} по слабой теме «${esc(wt.name)}» · ${Math.min(les, PLAN_LESSONS)}/${PLAN_LESSONS}`, les >= PLAN_LESSONS ? "" : "les"],
+    [d.n >= GOAL, `Цель дня: ${Math.min(d.n, GOAL)}/${GOAL} заданий`, d.n >= GOAL ? "" : "les"]
+  ];
+  const done = items.filter(x => x[0]).length;
+  return `<div class="exam">
+    <div class="ex-top"><div class="ex-days"><b>${left}</b><span>${plural(left, "день", "дня", "дней")}</span></div>
+      <div class="ex-t"><b>${left === 0 ? "ЕГЭ по русскому сегодня!" : "до ЕГЭ по русскому"}</b><small>${date} · <button class="ex-ch" id="exDate">изменить</button></small>
+      <small>${rest ? `Учи ~${pace} ${plural(pace, "новое задание", "новых задания", "новых заданий")} в день — и к экзамену выучишь всё` : "Всё выучено — теперь только повторять!"}</small></div></div>
+    <div class="ex-h">План на сегодня · ${done}/3</div>
+    ${items.map(([ok, txt, act]) => `<button class="ex-it ${ok ? "ok" : ""}" ${act && !ok ? `data-plan="${act}"` : "disabled"}><i>${ok ? "✓" : ""}</i><span>${txt}</span>${act && !ok ? "<em>›</em>" : ""}</button>`).join("")}
+  </div>`;
+}
+function bindExamCard() {
+  const ch = $("#exDate"); if (ch) ch.onclick = () => openSheet(`<h2>Дата экзамена</h2><p class="muted" style="margin:4px 0 10px">По проекту расписания ЕГЭ-2027 русский язык — 4 июня. Если у тебя другая дата (досрочный период, резервный день), поставь её здесь.</p>
+    <input type="date" id="exIn" value="${examDate()}" style="width:100%;border:1px solid var(--line);border-radius:14px;padding:12px;font:16px var(--fb);background:var(--sunk);color:var(--ink)">
+    <div class="btns"><button class="btn" id="exSave">Сохранить</button><button class="btn gh" id="exReset">Вернуть 4 июня 2027</button></div>`, s => {
+    s.querySelector("#exSave").onclick = () => { const v = s.querySelector("#exIn").value; if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { prefs.examDate = v; savePrefs(); } closeSheet(); render(); };
+    s.querySelector("#exReset").onclick = () => { delete prefs.examDate; savePrefs(); closeSheet(); render(); };
+  });
+  document.querySelectorAll("[data-plan]").forEach(b => b.onclick = () => b.dataset.plan === "rev" ? startReview() : startLesson(weakestTopic()));
+}
 
 /* ---------- Урок ---------- */
 let L = null;
@@ -317,6 +362,7 @@ function answer(ok, btn) {
 function next() { if (L.i < L.items.length - 1) { L.i++; drawQ(); } else finishLesson(); }
 function finishLesson() {
   const ok = L.res.filter(Boolean).length, n = L.res.length;
+  if (L.topic && n >= LESSON) { const dk = dayKey(), dd = state.days[dk] || (state.days[dk] = { n: 0, ok: 0, pts: 0 }); dd.les = (dd.les || 0) + 1; }
   if (L.topic) { state.lessons[L.topic.id] = (state.lessons[L.topic.id] || 0) + 1; state.best[L.topic.id] = Math.max(state.best[L.topic.id] || 0, ok); }
   L.bonus = n >= LESSON ? (ok === n ? 20 : ok >= 8 ? 10 : 0) : 0;
   if (L.bonus) { addBonus(L.bonus); L.pts += L.bonus; }
@@ -699,7 +745,7 @@ function renderProfile() {
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 20</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 21</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
