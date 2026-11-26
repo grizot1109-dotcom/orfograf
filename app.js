@@ -518,7 +518,7 @@ function startLocal() {
   const draw = () => {
     const st = D.seq[D.i];
     const half = (p, cls, who) => `<div class="half ${cls} ${D.lock[p] ? "lockd" : ""}"><div class="who">${who}</div><div class="w2">${esc(st.text)}</div><div class="ans"><button data-p="${p}" data-a="0">✕ Ошибка</button><button data-p="${p}" data-a="1">✓ Верно</button></div><div class="sc2">${D.s[p]}</div></div>`;
-    el.innerHTML = `<div class="split">${half(1, "p2", "Игрок 2")}${half(0, "p1", "Игрок 1")}</div><div class="mid">${D.i + 1}/10</div><button class="splitx" id="lx" aria-label="Выйти">✕</button>`;
+    el.innerHTML = `<div class="split">${half(1, "p2", "Игрок 2")}${half(0, "p1", "Игрок 1")}</div><div class="dmid">${D.i + 1}/10</div><button class="splitx" id="lx" aria-label="Выйти">✕</button>`;
     el.querySelector("#lx").onclick = () => { el.hidden = true; el.innerHTML = ""; };
     el.querySelectorAll("[data-p]").forEach(b => b.onclick = () => {
       const p = +b.dataset.p; if (D.busy || D.lock[p]) return;
@@ -766,7 +766,7 @@ function renderProfile() {
     ${cosmeticsCardHTML()}
     ${skinCardHTML()}
     <div class="btns" style="margin:-4px 0 12px"><button class="btn gh" id="myProf">Как меня видят друзья</button></div>
-    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 22</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">Ник, фото и статус общие с «Формулографом».<br>Версия 23</p>`;
   $("#ren").onclick = () => openSheet(`<h2>Ник</h2><form class="field" id="nf"><input id="nn" maxlength="16" value="${esc(me.name || "")}"><button class="btn">Сохранить</button></form><div class="err" id="ne"></div>`, s => {
     s.querySelector("#nf").onsubmit = async e => { e.preventDefault(); if (await setNick(s.querySelector("#nn").value, s.querySelector("#ne"))) { closeSheet(); toast("Ник сохранён"); } };
   });
