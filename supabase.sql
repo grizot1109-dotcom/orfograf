@@ -31,7 +31,7 @@ begin
   perform _auth_player(p_id, p_secret, p_name);
   if p_day < current_date - 2 or p_day > current_date + 1 then raise exception 'bad day'; end if;
   if p_attempts < 0 or p_correct < 0 or p_points < 0 or p_streak < 0 or p_level < 1 or p_level > 1000
-     or p_correct > p_attempts or p_attempts > 3000 or p_points > p_attempts * 30 then raise exception 'bad score'; end if;
+     or p_correct > p_attempts or p_attempts > 20000 or p_points > p_attempts * 30 then raise exception 'bad score'; end if;
   p_avatar := left(coalesce(p_avatar, ''), 64);
   insert into ru_scores (player_id, day, name, points, correct, attempts, streak, level, avatar, updated_at)
   values (p_id, p_day, btrim(p_name), p_points, p_correct, p_attempts, p_streak, p_level, p_avatar, now())
@@ -145,3 +145,9 @@ begin
 end $$;
 revoke all on function public.ru_report(uuid, text, text, text, text, text) from public;
 grant execute on function public.ru_report(uuid, text, text, text, text, text) to anon, authenticated;
+
+-- Лимиты на день подняты: до 20 000 заданий и 600 000 очков (раньше 3000 и 60 000 — упирались активные игроки)
+alter table public.ru_scores drop constraint if exists ru_scores_attempts_check;
+alter table public.ru_scores add constraint ru_scores_attempts_check check (attempts between 0 and 20000);
+alter table public.ru_scores drop constraint if exists ru_scores_points_check;
+alter table public.ru_scores add constraint ru_scores_points_check check (points between 0 and 600000);
