@@ -259,7 +259,7 @@ function drawQ() {
   L.ans = null; L.sel = new Set();
   let card = "", below = "";
   if (it.kind === "choice") {
-    L.opts = shuffle(it.opts);
+    L.opts = [...it.opts].sort((a, b) => a.localeCompare(b, "ru"));
     card = `<div class="w ${it.phrase ? "phrase" : ""}">${esc(it.pre)}<span class="q">${it.short ? "?" : "…"}</span>${esc(it.post)}</div><div class="h">${it.short ? (it.opts.some(o => o.length > 1) ? "Что пропущено?" : "Какая буква пропущена?") : "Как пишется?"}</div>`;
     below = `<div class="kbd" style="grid-template-columns:${it.short ? `repeat(${L.opts.length},1fr)` : "1fr"}">${L.opts.map((o, k) => `<button class="key ${it.short ? "" : "word"}" data-o="${k}">${esc(o)}</button>`).join("")}</div>`;
   } else if (it.kind === "stress") {
